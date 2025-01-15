@@ -1,5 +1,10 @@
 package com.csc3202.lab.project;
-import com.example.ChatProject.common.chatMessage;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -9,7 +14,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-public class ClientPlatform extends Application {
+public class clientPlatform extends Application {
     private ChatClientSocket chatClientSocket;
     private String username;
     private TextArea chatArea;
@@ -17,13 +22,23 @@ public class ClientPlatform extends Application {
     private ListView<String> userList;
     private Label messageTypeLabel;
     private ToggleButton privateMessageToggle;
+    private Connection connection;
+    private PreparedStatement selectStmt;
+    private PreparedStatement updateStmt;
+    private TextField searchField;
+    private TextField usernameField;
+    private TextField passwordField;
+    private Button searchButton;
+    private TextArea resultArea;
 
     public static void main(String[] args) {
         launch(args);
     }
 
-    @Override
+    @Override 
+    //Login GUI interface
     public void start(Stage primaryStage) {
+        initializeDB(); // invoke database
         // Login dialog
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Chat Login");
@@ -35,64 +50,24 @@ public class ClientPlatform extends Application {
             createAndShowGUI(primaryStage); // Create and display the GUI
         });
     }
-
-    private void initializeSocketConnection(String host, int port) {
-        try {
-            chatClientSocket = new ChatClientSocket(host, port, username);
-            chatClientSocket.setChatArea(chatArea); // Pass UI components to the socket
-            chatClientSocket.setUserList(userList); // Pass user list component to the socket
-        } catch (Exception e) {
-            showError("Connection Error", "Failed to connect to the server: " + e.getMessage());
-        }
-    }
-
+    // Main page after login
     private void createAndShowGUI(Stage primaryStage) {
-        BorderPane root = new BorderPane();
-        root.setPadding(new Insets(10));
+        searchField = new TextField();
+        searchField.setPromptText("Enter keyword to search for messages...");
 
-        // Initialize components
-        chatArea = new TextArea();
-        chatArea.setEditable(false);
-        chatArea.setWrapText(true);
+        searchButton = new Button("Search");
+        resultArea = new TextArea();
+        resultArea.setEditable(false);  // Make the result area read-only
 
-        messageField = new TextField();
-        messageField.setPromptText("Type your message...");
+        // Add button action to search messages
+        searchButton.setOnAction(e -> searchMessages());
 
-        userList = new ListView<>();
-        userList.setPrefWidth(150);
 
-        // Top toolbar
-        ToolBar toolbar = new ToolBar();
-        Button backButton = new Button("Logout");
-        Button profileButton = new Button("Profile");
-        ComboBox<String> statusCombo = new ComboBox<>();
-        statusCombo.getItems().addAll("Online", "Away", "Busy", "Offline");
-        statusCombo.setValue("Online");
-
-        toolbar.getItems().addAll(backButton, profileButton, statusCombo);
-        root.setTop(toolbar);
-
-        // Message input area
-        Label messageTypeLabel = new Label("To: Everyone");
-        privateMessageToggle = new ToggleButton("Private Message");
-        Button sendButton = new Button("Send");
-
-        // Layout for message input area
-        BorderPane bottomPane = new BorderPane();
-        bottomPane.setLeft(messageTypeLabel);
-        bottomPane.setRight(privateMessageToggle);
-        bottomPane.setPadding(new Insets(5));
-
-        VBox inputBox = new VBox(5);
-        inputBox.getChildren().addAll(messageField, sendButton);
-        root.setCenter(chatArea);
-        root.setBottom(inputBox);
-        root.setRight(userList);
+        
 
         // Message sending logic
         sendButton.setOnAction(e -> sendMessage());
         messageField.setOnAction(e -> sendMessage());
-
         // Logic for closing the application
         primaryStage.setOnCloseRequest(e -> {
             try {
@@ -102,13 +77,21 @@ public class ClientPlatform extends Application {
                 ex.printStackTrace();
             }
         });
-
         Scene scene = new Scene(root, 800, 600);
         primaryStage.setTitle("Chat Client - " + username);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-
+    // DON'T TOUCH THE DOWN PART FOR SOCKET
+    private void initializeSocketConnection(String host, int port) {
+        try {
+            chatClientSocket = new ChatClientSocket(host, port, username);
+            chatClientSocket.setChatArea(chatArea); // Pass UI components to the socket
+            chatClientSocket.setUserList(userList); // Pass user list component to the socket
+        } catch (Exception e) {
+            showError("Connection Error", "Failed to connect to the server: " + e.getMessage());
+        }
+    }
     private void sendMessage() {
         try {
             String content = messageField.getText().trim();
@@ -138,4 +121,127 @@ public class ClientPlatform extends Application {
             alert.showAndWait();
         });
     }
+    // Initialize database
+    public void initializeDB(){
+        
+            String dburl="jdbc:oracle:thin@localhost:1521:xe";
+            String username="A222333";
+            String password="222333";
+        try{
+            connection=DriverManager.getConnection(dburl,username,password);     
+            System.out.print("Connected to Oracle database server");
+
+        }catch (SQLException e){
+            System.out.println("Error:");
+            e.printStackTrace();
+        }
+        
+    }
+     // Method to search messages based on the entered keyword
+    public void searchMessages() {
+        String keyword = searchField.getText().trim();
+        
+        if (keyword.isEmpty()) {
+            resultArea.setText("Please enter a keyword to search.");
+            return;
+        }
+
+        String sql = "SELECT username, email, message FROM client WHERE message LIKE ?";
+        
+        try (PreparedStatement selectStmt = connection.prepareStatement(sql)) {
+            selectStmt.setString(1, "%" + keyword + "%");
+            ResultSet resultSet = selectStmt.executeQuery();
+
+            StringBuilder resultText = new StringBuilder();
+            while (resultSet.next()) {
+                String username = resultSet.getString("username");
+                String email = resultSet.getString("email");
+                String message = resultSet.getString("message");
+
+                resultText.append("Username: ").append(username)
+                        .append("\nEmail: ").append(email)
+                        .append("\nMessage: ").append(message)
+                        .append("\n\n");
+            }
+
+            // If no results, show a message
+            if (resultText.length() == 0) {
+                resultText.append("No results found for keyword: ").append(keyword);
+            }
+
+            // Display the results in the TextArea
+            resultArea.setText(resultText.toString());
+
+        } catch (SQLException e) {
+            resultArea.setText("Error searching the database: " + e.getMessage());
+        }
+    }
+     // Method to validate login credentials
+     public void login() {
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText().trim();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            resultArea.setText("Please enter both username and password.");
+            return;
+        }
+
+        // SQL query to check if the username exists and the password matches
+        String sql = "SELECT password FROM client_profile WHERE username = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, username);
+            ResultSet resultSet = stmt.executeQuery();
+
+            // If username exists, check the password
+            if (resultSet.next()) {
+                String storedPassword = resultSet.getString("password");
+
+                // Check if the entered password matches the stored password
+                if (storedPassword.equals(password)) {
+                    resultArea.setText("Login successful! Welcome " + username);
+                    // Proceed to the next part of the application (e.g., enabling chat features)
+                } else {
+                    resultArea.setText("Invalid password. Please try again.");
+                }
+            } else {
+                resultArea.setText("Username not found. Please try again.");
+            }
+
+        } catch (SQLException e) {
+            resultArea.setText("Error during login: " + e.getMessage());
+        }
+    }
+
+    // Method to update the message for the username (on send)
+    public void saveMessage() {
+        String username = usernameField.getText().trim();
+        String message = messageField.getText().trim();
+
+        if (username.isEmpty() || message.isEmpty()) {
+            resultArea.setText("Please enter both username and message.");
+            return;
+        }
+
+        // Update the client_message table
+        String sql = "INSERT INTO client_message (username, message) VALUES (?, ?)";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, username);
+            stmt.setString(2, message);
+
+            int rowsInserted = stmt.executeUpdate();
+            if (rowsInserted > 0) {
+                resultArea.setText("Message sent successfully from " + username);
+            } else {
+                resultArea.setText("Error sending message.");
+            }
+        } catch (SQLException e) {
+            resultArea.setText("Error sending message: " + e.getMessage());
+        }
+    }
 }
+
+    
+
+    

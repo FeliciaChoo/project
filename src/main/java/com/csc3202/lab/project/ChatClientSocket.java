@@ -1,6 +1,5 @@
-package com.example.ChatProject.client;
+package com.csc3202.lab.project;
 
-import com.example.ChatProject.common.chatMessage;
 import javafx.application.Platform;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
