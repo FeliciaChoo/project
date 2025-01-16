@@ -25,18 +25,18 @@ public class ChatServerSocket {
         }
     }
 
-    // 广播消息
+    
     static void broadcastMessage(chatMessage message) {
         clients.values().forEach(client -> client.sendMessage(message));
     }
 
-    // 添加客户端
+    
     static void addClient(String username, ClientHandler clientHandler) {
         clients.put(username, clientHandler);
         updateAllUsers();
     }
 
-    // 移除客户端
+    
     static void removeClient(String username) {
         clients.remove(username);
         updateAllUsers();
