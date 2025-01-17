@@ -37,7 +37,7 @@ public class chat extends Application {
         topBar.setPadding(new Insets(10));
         topBar.setSpacing(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.setStyle("-fx-background-color: #FFC0CB;");
+        topBar.setStyle("-fx-background-color: #FFE4E1;");
 
         // Circle icon (Avatar)
         Button circleIcon = new Button();
@@ -132,7 +132,7 @@ linkButton.setStyle("-fx-background-color: transparent; -fx-font-size: 16px; -fx
         Button settingsButton = new Button("Settings");
         settingsButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-padding: 10; -fx-border-radius: 5;");
 
-        bottomLabels.getChildren().addAll(friendListButton, settingsButton);
+        bottomLabels.getChildren().addAll(settingsButton,friendListButton);
 
         // Add components to the root layout
         root.getChildren().addAll(topBar, chatScroll, inputArea, bottomLabels);

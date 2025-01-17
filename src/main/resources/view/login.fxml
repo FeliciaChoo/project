@@ -10,9 +10,9 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:controller="clientPlatform" prefHeight="467.0" prefWidth="300.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.LoginController">
+<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.LoginController">
     <top>
-        <Label prefHeight="48.0" prefWidth="358.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Welcome to WhatsApp" BorderPane.alignment="CENTER" />
+        <Label prefHeight="48.0" prefWidth="364.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Welcome to Heart2Heart" BorderPane.alignment="CENTER" />
     </top>
     <center>
         <VBox alignment="CENTER" spacing="20.0" style="-fx-padding: 20px;" BorderPane.alignment="CENTER">
@@ -33,9 +33,11 @@
                         <PasswordField fx:id="passwordField" promptText="Enter your password" style="-fx-border-color: pink; -fx-border-radius: 5; -fx-padding: 5;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                     </children>
                 </GridPane>
-                <Button fx:id="logInButton" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 5;" text="Log In" />
+                <!-- Log In Button that calls the handleLogIn method -->
+                <Button fx:id="logInButton" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 5;" text="Log In" onAction="#handleLogIn" />
                 <Label style="-fx-font-size: 14px; -fx-text-fill: #555555;" text="Don't have an account?" />
-                <Button fx:id="signInButton" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 5;" text="Sign In" />
+                <!-- Sign In Button that calls the handleSignIn method -->
+                <Button fx:id="signInButton" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 5;" text="Sign In" onAction="#handleSignIn" />
             </children>
         </VBox>
     </center>

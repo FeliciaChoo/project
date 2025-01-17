@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.*;
 
 public class ChatServerSocket {
-    private static final int PORT = 12345; // Server listening port
+    private static final int PORT = 5000; // Server listening port
     private static Set<ClientHandler> clients = new HashSet<>(); // Active client collection
 
     public static void main(String[] args) {
