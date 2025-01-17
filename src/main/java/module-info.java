@@ -2,7 +2,9 @@ module com.csc3202.lab.project {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
-
+    requires transitive javafx.graphics;
+    requires java.rmi; 
+    requires java.sql;
     requires org.controlsfx.controls;
     requires com.dlsc.formsfx;
     requires net.synedra.validatorfx;
@@ -10,7 +12,6 @@ module com.csc3202.lab.project {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
-
     opens com.csc3202.lab.project to javafx.fxml;
     exports com.csc3202.lab.project;
     
