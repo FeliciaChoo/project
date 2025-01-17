@@ -105,4 +105,9 @@ public class LoginController {
         // Replace this with the actual logic to open the chat GUI
         System.out.println("Proceeding to chat for user: " + username);
     }
+
+    public void setStage(Stage primaryStage) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setStage'");
+    }
 }

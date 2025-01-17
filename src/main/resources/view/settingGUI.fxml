@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
-<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.ProfileSettingsController">
    <top>
       <Label prefHeight="48.0" prefWidth="364.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Heart2Heart" BorderPane.alignment="CENTER" />
    </top>

@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:controller="clientPlatform" prefHeight="467.0" prefWidth="300.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane fx:controller="clientPlatform" prefHeight="467.0" prefWidth="300.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.LoginController">
     <top>
         <Label prefHeight="48.0" prefWidth="358.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Welcome to WhatsApp" BorderPane.alignment="CENTER" />
     </top>

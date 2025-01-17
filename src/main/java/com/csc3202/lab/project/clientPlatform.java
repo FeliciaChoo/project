@@ -22,7 +22,7 @@ public class clientPlatform extends Application {
         initializeDB();
 
         try {
-            // Load the FXML file
+            // Load the login FXML file
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
             BorderPane root = loader.load();
 
@@ -31,6 +31,7 @@ public class clientPlatform extends Application {
 
             // Inject the database connection into the controller
             controller.setConnection(connection);
+            controller.setStage(primaryStage);  // Pass the primaryStage to the controller if needed for scene switching
 
             // Set up the scene and stage
             Scene scene = new Scene(root);
@@ -60,6 +61,28 @@ public class clientPlatform extends Application {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             System.err.println("Oracle JDBC Driver not found. Ensure ojdbc8.jar is in the classpath.");
+            e.printStackTrace();
+        }
+    }
+
+    // Method to load the profile settings scene
+    public void loadProfileSettingsScene(Stage primaryStage) {
+        try {
+            // Load the profile settings FXML file
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/profile_settings.fxml"));
+            BorderPane root = loader.load();
+
+            // Get the controller from the FXMLLoader and pass the connection if needed
+            ProfileSettingsController controller = loader.getController();
+            controller.setConnection(connection);
+
+            // Set up the scene and switch to the new stage
+            Scene scene = new Scene(root);
+            primaryStage.setTitle("Profile Settings");
+            primaryStage.setScene(scene);
+            primaryStage.show();
+        } catch (Exception e) {
+            System.err.println("Error loading profile settings FXML: " + e.getMessage());
             e.printStackTrace();
         }
     }
