@@ -1,84 +1,89 @@
 package com.csc3202.lab.project;
 
-import javafx.application.Platform;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextArea;
-
 import java.io.*;
-import java.net.Socket;
-import java.util.List;
+import java.net.*;
 
 public class ChatClientSocket {
+
     private Socket socket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
-    private String username;
-    private TextArea chatArea;
-    private ListView<String> userList;
+    private BufferedReader input;
+    private PrintWriter output;
 
-    public ChatClientSocket(String host, int port, String username) {
+    public ChatClientSocket(String serverAddress, int serverPort) {
         try {
-            this.socket = new Socket(host, port);
-            this.out = new ObjectOutputStream(socket.getOutputStream());
-            this.in = new ObjectInputStream(socket.getInputStream());
-            this.username = username;
+            // Connect to the server
+            socket = new Socket(serverAddress, serverPort);
 
-            // 发送用户名到服务器
-            out.writeObject(username);
+            // Set up input and output streams
+            input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            output = new PrintWriter(socket.getOutputStream(), true);
 
-            // 启动新线程监听服务器消息
-            new Thread(this::listenForMessages).start();
+            System.out.println("Connected to the server at " + serverAddress + ":" + serverPort);
+
         } catch (IOException e) {
-            System.err.println("Connection error: " + e.getMessage());
+            System.err.println("Failed to connect to the server: " + e.getMessage());
         }
     }
 
-    private void listenForMessages() {
+    // Send a message to the server
+    public void sendMessage(String message) {
+        if (output != null) {
+            output.println(message);
+        }
+    }
+
+    // Receive a message from the server
+    public String receiveMessage() {
         try {
-            Object message;
-            while ((message = in.readObject()) != null) {
-                if (message instanceof String) {
-                    handleChatMessage((String) message);
-                } else if (message instanceof List) {
-                    handleUserListUpdate((List<String>) message);
+            if (input != null) {
+                return input.readLine();
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading message: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // Close the socket and streams
+    public void close() {
+        try {
+            if (socket != null) {
+                socket.close();
+            }
+            if (input != null) {
+                input.close();
+            }
+            if (output != null) {
+                output.close();
+            }
+            System.out.println("Connection closed.");
+        } catch (IOException e) {
+            System.err.println("Error closing connection: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        // Example usage
+        ChatClientSocket client = new ChatClientSocket("localhost", 12345);
+
+        BufferedReader consoleInput = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            String userInput;
+            System.out.println("Type your messages (type 'exit' to quit):");
+            while ((userInput = consoleInput.readLine()) != null) {
+                if ("exit".equalsIgnoreCase(userInput)) {
+                    client.close();
+                    break;
+                }
+                client.sendMessage(userInput);
+
+                String serverReply = client.receiveMessage();
+                if (serverReply != null) {
+                    System.out.println("Server: " + serverReply);
                 }
             }
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Connection closed.");
-        }
-    }
-
-    private void handleChatMessage(String message) {
-        Platform.runLater(() -> {
-            if (chatArea != null) {
-                chatArea.appendText(message + "\n");
-            }
-        });
-    }
-
-    private void handleUserListUpdate(List<String> users) {
-        Platform.runLater(() -> {
-            if (userList != null) {
-                userList.getItems().clear();
-                userList.getItems().addAll(users);
-            }
-        });
-    }
-
-    public void sendMessage(String message) {
-        try {
-            out.writeObject(username + ": " + message);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error reading user input: " + e.getMessage());
         }
-    }
-
-    public void setChatArea(TextArea chatArea) {
-        this.chatArea = chatArea;
-    }
-
-    public void setUserList(ListView<String> userList) {
-        this.userList = userList;
     }
 }
-
