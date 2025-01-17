@@ -13,4 +13,6 @@ module com.csc3202.lab.project {
 
     opens com.csc3202.lab.project to javafx.fxml;
     exports com.csc3202.lab.project;
+    
 }
+
