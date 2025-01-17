@@ -2,88 +2,81 @@ package com.csc3202.lab.project;
 
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 
 public class ChatClientSocket {
-
     private Socket socket;
-    private BufferedReader input;
-    private PrintWriter output;
+    private PrintWriter out;
+    private BufferedReader in;
+    private String username;
 
-    public ChatClientSocket(String serverAddress, int serverPort) {
-        try {
-            // Connect to the server
-            socket = new Socket(serverAddress, serverPort);
+    public ChatClientSocket(String serverAddress, int serverPort, String username) throws IOException {
+        this.socket = new Socket(serverAddress, serverPort);
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        this.username = username;
 
-            // Set up input and output streams
-            input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            output = new PrintWriter(socket.getOutputStream(), true);
-
-            System.out.println("Connected to the server at " + serverAddress + ":" + serverPort);
-
-        } catch (IOException e) {
-            System.err.println("Failed to connect to the server: " + e.getMessage());
-        }
+        // Notify the server that the client is online
+        sendMessage("User " + username + " has connected to the server.");
     }
 
-    // Send a message to the server
     public void sendMessage(String message) {
-        if (output != null) {
-            output.println(message);
-        }
+        out.println(username + ": " + message);
     }
 
-    // Receive a message from the server
-    public String receiveMessage() {
-        try {
-            if (input != null) {
-                return input.readLine();
+    public void receiveMessages() {
+        // Start a thread to handle server messages
+        Thread messageReceiver = new Thread(() -> {
+            try {
+                String serverMessage;
+                while ((serverMessage = in.readLine()) != null) {
+                    System.out.println(serverMessage); // Print messages broadcast by the server
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to read messages from the server: " + e.getMessage());
             }
-        } catch (IOException e) {
-            System.err.println("Error reading message: " + e.getMessage());
-        }
-        return null;
+        });
+        messageReceiver.start();
     }
 
-    // Close the socket and streams
-    public void close() {
+    public void disconnect() {
         try {
-            if (socket != null) {
-                socket.close();
-            }
-            if (input != null) {
-                input.close();
-            }
-            if (output != null) {
-                output.close();
-            }
-            System.out.println("Connection closed.");
+            sendMessage("User " + username + " has disconnected.");
+            socket.close();
         } catch (IOException e) {
-            System.err.println("Error closing connection: " + e.getMessage());
+            System.err.println("Unable to disconnect: " + e.getMessage());
         }
     }
 
     public static void main(String[] args) {
-        // Example usage
-        ChatClientSocket client = new ChatClientSocket("localhost", 12345);
+        // Get server address and username from the command line
+        Scanner scanner = new Scanner(System.in);
 
-        BufferedReader consoleInput = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter the server address: ");
+        String serverAddress = scanner.nextLine().trim();
+
+        System.out.print("Enter your username: ");
+        String username = scanner.nextLine().trim();
+
         try {
-            String userInput;
-            System.out.println("Type your messages (type 'exit' to quit):");
-            while ((userInput = consoleInput.readLine()) != null) {
-                if ("exit".equalsIgnoreCase(userInput)) {
-                    client.close();
+            ChatClientSocket client = new ChatClientSocket(serverAddress, 12345, username);
+            client.receiveMessages();
+
+            System.out.println("Connected successfully. Type a message and press Enter to send (type 'exit' to disconnect):");
+
+            while (true) {
+                String message = scanner.nextLine();
+                if ("exit".equalsIgnoreCase(message)) {
+                    client.disconnect();
+                    System.out.println("Disconnected.");
                     break;
                 }
-                client.sendMessage(userInput);
-
-                String serverReply = client.receiveMessage();
-                if (serverReply != null) {
-                    System.out.println("Server: " + serverReply);
-                }
+                client.sendMessage(message);
             }
         } catch (IOException e) {
-            System.err.println("Error reading user input: " + e.getMessage());
+            System.err.println("Unable to connect to the server: " + e.getMessage());
         }
     }
 }
+
+
