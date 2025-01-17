@@ -37,8 +37,8 @@ public class ChatClientSocket {
         try {
             Object message;
             while ((message = in.readObject()) != null) {
-                if (message instanceof chatMessage) {
-                    handleChatMessage((chatMessage) message);
+                if (message instanceof String) {
+                    handleChatMessage((String) message);
                 } else if (message instanceof List) {
                     handleUserListUpdate((List<String>) message);
                 }
@@ -48,11 +48,10 @@ public class ChatClientSocket {
         }
     }
 
-    private void handleChatMessage(chatMessage message) {
-        String formattedMessage = "[" + message.getTimestamp() + "] " + message.getSender() + ": " + message.getContent();
+    private void handleChatMessage(String message) {
         Platform.runLater(() -> {
             if (chatArea != null) {
-                chatArea.appendText(formattedMessage + "\n");
+                chatArea.appendText(message + "\n");
             }
         });
     }
@@ -66,9 +65,9 @@ public class ChatClientSocket {
         });
     }
 
-    public void sendMessage(chatMessage message) {
+    public void sendMessage(String message) {
         try {
-            out.writeObject(message);
+            out.writeObject(username + ": " + message);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -82,3 +81,4 @@ public class ChatClientSocket {
         this.userList = userList;
     }
 }
+
