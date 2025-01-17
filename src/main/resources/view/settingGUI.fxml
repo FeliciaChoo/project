@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <top>
+      <Label prefHeight="48.0" prefWidth="364.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Heart2Heart" BorderPane.alignment="CENTER" />
+   </top>
+
+   <center>
+      <VBox alignment="CENTER" spacing="20.0" style="-fx-padding: 20px;" BorderPane.alignment="CENTER">
+         <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FF69B4;" text="Profile Settings" />
+
+         <!-- Circle for Profile Image -->
+         <Circle fx:id="profileImageCircle" fill="#f8fafc" radius="33.0" stroke="#e19595" strokeType="INSIDE" />
+
+         <!-- Button to Upload Image -->
+         <Button fx:id="uploadImageButton" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white;                -fx-font-size: 12px; -fx-font-weight: bold;                -fx-background-radius: 10;" text="Upload Image" />
+         <!-- Username Input -->
+         <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="Username:" />
+         <TextField fx:id="usernameField" promptText="Enter new username" style="-fx-border-color: pink; -fx-border-radius: 5; -fx-padding: 5;" />
+
+         <!-- Email Input -->
+         <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="Email:" />
+         <TextField fx:id="emailField" promptText="Enter your email" style="-fx-border-color: pink; -fx-border-radius: 5; -fx-padding: 5;" />
+
+         <!-- Status Input -->
+         <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="Status:" />
+         <ChoiceBox fx:id="statusChoiceBox" prefWidth="150.0">
+            <items>
+               <FXCollections fx:factory="observableArrayList">
+                  <String fx:value="Online" />
+                  <String fx:value="Offline" />
+               </FXCollections>
+            </items>
+         </ChoiceBox>
+
+         <Button fx:id="uploadImageButton1" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white;                -fx-font-size: 12px; -fx-font-weight: bold;                -fx-background-radius: 10;" text="Save changes" />
+      </VBox>
+   </center> <!-- Closed the center tag here -->
+
+   <bottom>
+      <VBox prefHeight="60.0" prefWidth="362.0" style="-fx-background-color: #FFB6C1;" BorderPane.alignment="CENTER">
+         <children>
+            <HBox alignment="CENTER" prefHeight="50.0" prefWidth="304.0" spacing="10">
+               <VBox.margin>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </VBox.margin>
+               <children>
+                  <Button style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;" text="Friend List" />
+                  <Button disable="true" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;" text="Settings" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </bottom>
+</BorderPane>
