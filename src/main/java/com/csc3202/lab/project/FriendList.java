@@ -1,38 +1,49 @@
 package com.csc3202.lab.project;
-import javafx.application.Application;
+
 import javafx.geometry.Insets;
-import javafx.geometry.HPos;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
-import javafx.stage.Stage;
+import javafx.scene.image.Image;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FriendList extends Application {
+public class FriendList {
 
+    private Connection connection;
     private List<Client> clients = new ArrayList<>();
     private String loggedInUser = "Alice"; // This would be dynamically set based on the logged-in user
+    private BorderPane root;
 
-    @Override
-    public void start(Stage primaryStage) {
-        // Fetch client data from the database
-        fetchClientData();
-
-        // Root BorderPane
-        BorderPane root = new BorderPane();
-        root.setPrefSize(324, 467);
+    public FriendList() {
+        root = new BorderPane();
+        root.setPrefSize(300, 457);
         root.setStyle("-fx-background-color: #FFE4E1;");
+        initializeUI();
+    }
 
+    public void setConnection(Connection connection) {
+        this.connection = connection;
+        fetchClientData(); // Fetch data once connection is set
+        updateUI(); // Update UI with fetched data
+    }
+
+    public BorderPane getRoot() {
+        return root;
+    }
+
+    private void initializeUI() {
         // Top section
         VBox topVBox = new VBox(5);
-        topVBox.setAlignment(javafx.geometry.Pos.CENTER);
+        topVBox.setAlignment(Pos.CENTER);
 
         Label titleLabel = new Label("Heart2Heart");
         titleLabel.setPrefSize(364, 48);
@@ -41,7 +52,47 @@ public class FriendList extends Application {
         topVBox.getChildren().add(titleLabel);
         root.setTop(topVBox);
 
-        // Center section with Friend List and Status
+        // Center section placeholder
+        VBox centerVBox = new VBox(10);
+        centerVBox.setPadding(new Insets(10));
+        root.setCenter(centerVBox);
+    }
+
+    private void fetchClientData() {
+        if (connection == null) {
+            throw new IllegalStateException("Database connection is not set");
+        }
+
+        // SQL query to fetch client profiles excluding the logged-in user
+        String query = "SELECT username, email, status, profile_image_path " +
+                "FROM client_profile " +
+                "WHERE username != ?";  // Exclude logged-in user
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, loggedInUser);  // Exclude the logged-in user from the list
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                // Clear the existing clients list
+                clients.clear();
+
+                // Fetch data from the ResultSet
+                while (rs.next()) {
+                    String user = rs.getString("username");
+                    String email = rs.getString("email");
+                    String status = rs.getString("status");
+                    String imagePath = rs.getString("profile_image_path");
+                    clients.add(new Client(user, email, status, imagePath));
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void updateUI() {
         VBox centerVBox = new VBox(10);
         centerVBox.setPadding(new Insets(10));
 
@@ -50,115 +101,89 @@ public class FriendList extends Application {
         friendsLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
         centerVBox.getChildren().add(friendsLabel);
 
-        // Display each client (excluding logged-in user)
+        // Display the client profiles
         for (Client client : clients) {
-            if (!client.getUsername().equals(loggedInUser)) { // Exclude the logged-in user
-                HBox friendBox = new HBox(10);
-                friendBox.setStyle("-fx-padding: 5px;");
+            HBox friendBox = new HBox(10);
+            friendBox.setStyle("-fx-padding: 5px;");
+            friendBox.setAlignment(Pos.CENTER_LEFT); // Align children to the left
 
-                // Circle with first letter of username
-                Circle profilePic = new Circle(20, Color.LIGHTPINK);
-                Text letter = new Text(client.getUsername().substring(0, 1).toUpperCase());
-                letter.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-fill: white;");
-                profilePic.setCenterX(20);
-                profilePic.setCenterY(20);
-                profilePic.setRadius(20);
-                letter.setTranslateX(5);
-                letter.setTranslateY(-7);
-
-                // User information
-                VBox userInfo = new VBox();
-                Label usernameLabel = new Label(client.getUsername());
-                usernameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
-                Label statusLabel = new Label("Status: " + client.getStatus());
-                statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
-                userInfo.getChildren().addAll(usernameLabel, statusLabel);
-
-                friendBox.getChildren().addAll(profilePic, letter, userInfo);
-                centerVBox.getChildren().add(friendBox);
+            // Circle with profile image (if available)
+            Circle profilePic = new Circle(20);
+            if (client.getProfileImagePath() != null) {
+                try {
+                    Image image = new Image("file:" + client.getProfileImagePath());
+                    profilePic.setFill(new ImagePattern(image));
+                } catch (Exception e) {
+                    // Handle case where image path is invalid or not available
+                    profilePic.setFill(Color.LIGHTPINK);
+                }
+            } else {
+                profilePic.setFill(Color.LIGHTPINK); // Default color if no image
             }
-        }
 
-        // Status Section
-        Label statusGridLabel = new Label("Status");
-        statusGridLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
-        centerVBox.getChildren().add(statusGridLabel);
+            VBox userInfo = new VBox();
+            Label usernameLabel = new Label(client.getUsername());
+            usernameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
+            Label emailLabel = new Label("Email: " + client.getEmail());
+            emailLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
+            Label statusLabel = new Label("Status: " + client.getStatus());
+            statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
+            userInfo.getChildren().addAll(usernameLabel, emailLabel, statusLabel);
+
+            // Spacer to push "Chat" button to the right
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            // Chat button to open the chat screen
+            Button chatButton = new Button("Chat");
+            chatButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white;");
+            chatButton.setOnAction(e -> openChatScreen(client.getUsername()));
+
+            // Add profile, user info, and chat button with spacer
+            friendBox.getChildren().addAll(profilePic, userInfo, spacer, chatButton);
+            centerVBox.getChildren().add(friendBox);
+        }
 
         root.setCenter(centerVBox);
-
-        // Bottom section with buttons
-        VBox bottomVBox = new VBox();
-        bottomVBox.setPrefSize(324, 50);
-        bottomVBox.setStyle("-fx-background-color: #FFB6C1;");
-
-        HBox bottomHBox = new HBox(10);
-        bottomHBox.setAlignment(javafx.geometry.Pos.CENTER);
-        bottomHBox.setPadding(new Insets(10));
-
-        Button friendListButton = new Button("Friend List");
-        friendListButton.setDisable(true);
-        friendListButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
-
-        Button settingsButton = new Button("Settings");
-        settingsButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
-
-        bottomHBox.getChildren().addAll( settingsButton,friendListButton);
-        bottomVBox.getChildren().add(bottomHBox);
-        root.setBottom(bottomVBox);
-
-        // Scene and Stage setup
-        Scene scene = new Scene(root);
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("Heart2Heart UI");
-        primaryStage.show();
     }
 
-    private void fetchClientData() {
-        String url = "jdbc:oracle:thin:@fsktmdbora.upm.edu.my:1521:FSKTM"; // Replace with actual DB connection details
-        String username = "your_db_username"; // Replace with actual DB username
-        String password = "your_db_password"; // Replace with actual DB password
-        String query = "SELECT username, status FROM client_profile";
 
-        try (Connection conn = DriverManager.getConnection(url, username, password);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-
-            // Clear the existing clients list
-            clients.clear();
-
-            // Fetch data from the ResultSet
-            while (rs.next()) {
-                String user = rs.getString("username");
-                String status = rs.getString("status");
-                clients.add(new Client(user, status));
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    // Method to open the chat screen for the selected friend
+    private void openChatScreen(String friendUsername) {
+        System.out.println("Opening chat screen with " + friendUsername);
+        Chat chatApp = new Chat(friendUsername);// Pass friend's username to the Chat screen
+        root.setCenter(chatApp.getRoot()); // Update the center with the chat screen
     }
 
-    public static void main(String[] args) {
-        launch(args);
-    }
 
-    // Client class to store username and status
+    // Client class to store username, email, status, and profile image path
     static class Client {
         private String username;
+        private String email;
         private String status;
+        private String profileImagePath;
 
-        public Client(String username, String status) {
+        public Client(String username, String email, String status, String profileImagePath) {
             this.username = username;
+            this.email = email;
             this.status = status;
+            this.profileImagePath = profileImagePath;
         }
 
         public String getUsername() {
             return username;
         }
 
+        public String getEmail() {
+            return email;
+        }
+
         public String getStatus() {
             return status;
         }
+
+        public String getProfileImagePath() {
+            return profileImagePath;
+        }
     }
 }
-

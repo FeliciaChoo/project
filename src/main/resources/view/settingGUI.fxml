@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
-<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.ProfileSettingsController">
+<BorderPane prefHeight="616.0" prefWidth="362.0" style="-fx-background-color: #FFE4E1;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.csc3202.lab.project.ProfileController">
    <top>
       <Label prefHeight="48.0" prefWidth="364.0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;" text="Heart2Heart" BorderPane.alignment="CENTER" />
    </top>
@@ -49,27 +49,13 @@
          <!-- Buttons for Save Profile and Save Changes -->
          <HBox spacing="20.0" alignment="CENTER">
             <!-- Save Profile Button on the Left -->
-            <Button fx:id="firstTimeSaveButton" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; -fx-background-radius: 10;" text="Save Profile" />
+            <Button fx:id="saveProfileButton" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; -fx-background-radius: 10;" text="Save Profile" />
             
             <!-- Save Changes Button on the Right -->
-            <Button fx:id="saveChangesButton" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; -fx-background-radius: 10;" text="Save Changes" />
+            <Button fx:id="logOutButton" prefHeight="34.0" prefWidth="153.0" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; -fx-background-radius: 10;" text="Log Out" />
          </HBox>
       </VBox>
    </center>
 
-   <bottom>
-      <VBox prefHeight="60.0" prefWidth="362.0" style="-fx-background-color: #FFB6C1;" BorderPane.alignment="CENTER">
-         <children>
-            <HBox alignment="CENTER" prefHeight="50.0" prefWidth="304.0" spacing="10">
-               <VBox.margin>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </VBox.margin>
-               <children>
-                  <Button style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;" text="Settings" />
-                  <Button disable="true" style="-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;" text="Friend List" />
-               </children>
-            </HBox>
-         </children>
-      </VBox>
-   </bottom>
+
 </BorderPane>
