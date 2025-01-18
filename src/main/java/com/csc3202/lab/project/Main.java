@@ -38,51 +38,57 @@ public class Main extends Application {
 
     public void loadMainScreen(String username) {
         BorderPane root = new BorderPane();
-
+    
         // Create Bottom HBox for buttons
         HBox bottomHBox = new HBox(10);
         bottomHBox.setAlignment(Pos.CENTER);
         bottomHBox.setStyle("-fx-padding: 10px;-fx-background-color:#FFB6C1FF ");
-
+    
         Button friendListButton = new Button("Friend List");
         friendListButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         friendListButton.setOnAction(e -> loadFriendListScreen(root));
-
+    
         Button settingsButton = new Button("Settings");
         settingsButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         settingsButton.setOnAction(e -> handleSettingsButton(root, username));
-
+    
         bottomHBox.getChildren().addAll(settingsButton, friendListButton);
         root.setBottom(bottomHBox);
-
+    
         // Set the initial content for the top section
         VBox topContent = new VBox();
         topContent.setAlignment(Pos.CENTER);
         topContent.setStyle("-fx-background-color: #FFE4E1; -fx-padding: 20px;");
-
+    
+        // Create an HBox for the logo and the label
+        HBox topHBox = new HBox(10); // 10px spacing between label and logo
+        topHBox.setAlignment(Pos.CENTER);
+    
         Label welcomeLabel = new Label("Welcome to Heart2Heart");
         welcomeLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FF1493;");
-
+    
         String logoPath = "file:/C:/Users/felic/OneDrive/Documents/Lab/Project/project/src/main/resources/assets/logo.png";
         try {
             Image logoImage = new Image(logoPath);
             ImageView logoView = new ImageView(logoImage);
-            logoView.setFitWidth(100);
+            logoView.setFitWidth(50); // Adjust the logo size to fit next to the label
             logoView.setPreserveRatio(true);
-            topContent.getChildren().addAll(welcomeLabel, logoView);
+    
+            topHBox.getChildren().addAll(welcomeLabel, logoView); // Add both label and logo to the HBox
         } catch (Exception e) {
             System.err.println("Failed to load the logo image from: " + logoPath);
             e.printStackTrace();
         }
-
+    
+        topContent.getChildren().add(topHBox); // Add the HBox to the VBox
         root.setCenter(topContent);
-
+    
         Scene mainScene = new Scene(root, 350, 610);
         primaryStage.setScene(mainScene);
         primaryStage.setTitle("Heart2Heart Main Screen");
         primaryStage.show();
     }
-
+    
     private void loadFriendListScreen(BorderPane root) {
         if (connection != null) {
             FriendList friendList = new FriendList();
