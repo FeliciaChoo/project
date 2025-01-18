@@ -151,9 +151,32 @@ public class FriendList {
     // Method to open the chat screen for the selected friend
     private void openChatScreen(String friendUsername) {
         System.out.println("Opening chat screen with " + friendUsername);
-        Chat chatApp = new Chat(friendUsername);// Pass friend's username to the Chat screen
+    
+        // Fetch the friend's image path from the database
+        String friendImagePath = getFriendImagePath(friendUsername);
+    
+        // Pass both username and image path to the Chat constructor
+        Chat chatApp = new Chat(friendUsername, friendImagePath);
         root.setCenter(chatApp.getRoot()); // Update the center with the chat screen
     }
+    
+    private String getFriendImagePath(String friendUsername) {
+        String imagePath = null;
+        String query = "SELECT profile_image_path FROM client_profile WHERE username = ?";
+    
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, friendUsername);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    imagePath = rs.getString("profile_image_path");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return imagePath;
+    }
+    
 
 
     // Client class to store username, email, status, and profile image path

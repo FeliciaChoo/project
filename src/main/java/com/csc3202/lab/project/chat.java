@@ -1,5 +1,5 @@
 package com.csc3202.lab.project;
-
+import javafx.scene.shape.Circle;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -11,24 +11,28 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Popup;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
 import java.io.File;
+
 
 public class Chat {
 
+    private String friendImagePath;
     private TextField messageInput;
     private String friendUsername;
     private VBox root; // This should be the layout for the chat screen.
 
     // Constructor to pass the friend's username to the chat screen
-    public Chat(String friendUsername) {
-        this.friendUsername = friendUsername; // Store the friend's username
+    public Chat(String friendUsername, String friendImagePath) {
+        this.friendUsername = friendUsername;
+        this.friendImagePath = friendImagePath;
         this.root = new VBox(); // Initialize root layout
         root.setStyle("-fx-background-color: #FFB6C1;");
         initializeUI(); // Call method to initialize UI components
@@ -46,13 +50,9 @@ public class Chat {
         topBar.setSpacing(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setStyle("-fx-background-color: #FFE4E1;");
-
-        // Circle icon (Avatar)
-        Button circleIcon = new Button();
-        circleIcon.setShape(new javafx.scene.shape.Circle(15));
-        circleIcon.setPrefSize(30, 30);
-        circleIcon.setStyle("-fx-background-color: #FFFFFF;");
-
+        // Load the friend's avatar and set it as the fill of the circle
+        Circle avatarCircle = loadAvatar(friendImagePath);
+   
         // Title with the friend's username
         Label titleLabel = new Label(friendUsername); // Display friend's username
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #000000;");
@@ -72,7 +72,7 @@ public class Chat {
 
         rightIcons.getChildren().addAll(searchInput, exploreIcon);
         HBox.setHgrow(rightIcons, Priority.ALWAYS);
-        topBar.getChildren().addAll(circleIcon, titleLabel, rightIcons);
+        topBar.getChildren().addAll(avatarCircle, titleLabel, rightIcons);
 
         // Chat area (scrollable)
         ScrollPane chatScroll = new ScrollPane();
@@ -206,6 +206,28 @@ public class Chat {
         }
         typingEffect.play();
     }
+
+   // Method to load the friend's avatar as a circular profile image
+   private Circle loadAvatar(String imagePath) {
+       Circle profilePic = new Circle(15); // Circle with radius 15 for the avatar
+   
+       if (imagePath != null && !imagePath.isEmpty()) {
+           try {
+               // Attempt to load the image from the given path
+               Image image = new Image("file:" + imagePath);
+               profilePic.setFill(new ImagePattern(image)); // Set the image as the fill inside the circle
+           } catch (Exception e) {
+               // Handle case where image path is invalid or not available
+               profilePic.setFill(Color.LIGHTPINK); // Fallback to a light pink color if image is invalid
+           }
+       } else {
+           // Default color if no image path is provided
+           profilePic.setFill(Color.LIGHTPINK); // Default fill color
+       }
+   
+       return profilePic;
+   }
+   
 
     // Getter for the root layout
     public VBox getRoot() {
