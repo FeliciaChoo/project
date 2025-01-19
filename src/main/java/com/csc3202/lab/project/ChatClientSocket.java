@@ -1,4 +1,3 @@
-package com.csc3202.lab.project;
 
 import java.io.*;
 import java.net.*;
