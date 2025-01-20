@@ -7,31 +7,37 @@ import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.sql.*;
+import java.util.Base64;
 
 public class Login extends Application {
 
-    private Main mainApp; // Reference to the Main class
+    private static final String ENCRYPTION_KEY = "1234567890123456"; // 16-byte key
+    private static final String ENCRYPTION_IV = "abcdefghijklmnop"; // 16-byte IV
     private Connection connection;
     private Stage primaryStage;
-
-    // Constructor that accepts the Main app object
-    public Login(Main mainApp) {
-        this.mainApp = mainApp;
-        try {
-            connection = DriverManager.getConnection("jdbc:oracle:thin:@fsktmdbora.upm.edu.my:1521:FSKTM", "A222333", "222333");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to connect to the database.");
-        }
-    }
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
+
+        try {
+            connection = DriverManager.getConnection(
+                    "jdbc:oracle:thin:@fsktmdbora.upm.edu.my:1521:FSKTM",
+                    "A222333",
+                    "222333"
+            );
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to connect to the database.");
+            return;
+        }
 
         // Create BorderPane root layout
         BorderPane root = new BorderPane();
@@ -39,11 +45,8 @@ public class Login extends Application {
 
         // Title Label
         Label titleLabel = new Label("Welcome to Heart2Heart");
-        titleLabel.setPrefHeight(48.0);
-        titleLabel.setPrefWidth(358.0);
-        titleLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px; -fx-alignment: center;");
+        titleLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-background-color: #FFB6C1; -fx-text-fill: white; -fx-padding: 10px;");
         BorderPane.setAlignment(titleLabel, Pos.CENTER);
-
         root.setTop(titleLabel);
 
         // GridPane for login
@@ -52,54 +55,29 @@ public class Login extends Application {
         gridPane.setHgap(10);
         gridPane.setStyle("-fx-padding: 10px;");
 
-        // Label for Username
-        Label usernameLabel = new Label("Username:");
-        usernameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
-        GridPane.setColumnIndex(usernameLabel, 0);
-        GridPane.setRowIndex(usernameLabel, 0);
-
-        // Label for Password
-        Label passwordLabel = new Label("Password:");
-        passwordLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
-        GridPane.setColumnIndex(passwordLabel, 0);
-        GridPane.setRowIndex(passwordLabel, 1);
-
+        // Username and password fields
         TextField usernameField = new TextField();
         usernameField.setPromptText("Enter your username");
         usernameField.setStyle("-fx-border-color: pink; -fx-border-radius: 5; -fx-padding: 5;");
-        usernameField.setTooltip(new Tooltip("Enter your username"));
-        usernameField.setPrefWidth(200);
 
-        // Password Field
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
         passwordField.setStyle("-fx-border-color: pink; -fx-border-radius: 5; -fx-padding: 5;");
-        passwordField.setTooltip(new Tooltip("Enter your password"));
-        usernameField.setPrefWidth(200);
 
-        gridPane.add(usernameLabel, 0, 0);
+        gridPane.add(new Label("Username:"), 0, 0);
         gridPane.add(usernameField, 1, 0);
-        gridPane.add(passwordLabel, 0, 1);
+        gridPane.add(new Label("Password:"), 0, 1);
         gridPane.add(passwordField, 1, 1);
 
-        // Login Button
+        // Login and Sign-Up buttons
         Button logInButton = new Button("Log In");
-        logInButton.setOnAction(e -> handleLogIn(usernameField, passwordField));
-        logInButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        logInButton.setOnAction(e -> handleLogIn(usernameField.getText(), passwordField.getText()));
 
-        // Sign In Button
         Button signInButton = new Button("Sign In");
-        signInButton.setOnAction(e -> handleSignIn(usernameField, passwordField));
-        signInButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        signInButton.setOnAction(e -> handleSignIn(usernameField.getText(), passwordField.getText()));
 
-        Label accountPromptLabel = new Label("Don't have an account?");
-        accountPromptLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #555555;");
-
-        VBox vBox = new VBox(20);
+        VBox vBox = new VBox(20, gridPane, logInButton, new Label("Don't have an account?"), signInButton);
         vBox.setAlignment(Pos.CENTER);
-        vBox.setStyle("-fx-padding: 20px;");
-        vBox.getChildren().addAll(gridPane, logInButton, accountPromptLabel, signInButton);
-
         root.setCenter(vBox);
 
         // Set up the scene
@@ -109,37 +87,62 @@ public class Login extends Application {
         primaryStage.show();
     }
 
-    private void handleLogIn(TextField usernameField, PasswordField passwordField) {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText().trim();
-
+    private void handleLogIn(String username, String password) {
         if (username.isEmpty() || password.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Error", "Both username and password are required.");
             return;
         }
 
         if (checkCredentials(username, password)) {
-            mainApp.loadMainScreen(username);  // Load the main screen after successful login
+            showAlert(Alert.AlertType.INFORMATION, "Success", "Login successful!");
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Invalid username or password.");
         }
     }
 
-    private void handleSignIn(TextField usernameField, PasswordField passwordField) {
-        // Similar logic for handling sign-in
+    private void handleSignIn(String username, String password) {
+        if (username.isEmpty() || password.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Both username and password are required.");
+            return;
+        }
+
+        storeNewUser(username, password);
     }
 
     private boolean checkCredentials(String username, String password) {
-        String sql = "SELECT * FROM client_login WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM A222333.client_login WHERE username = ? AND password = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, username);
-            stmt.setString(2, password);
+            stmt.setString(1, encrypt(username));
+            stmt.setString(2, encrypt(password));
             ResultSet resultSet = stmt.executeQuery();
             return resultSet.next();
-        } catch (SQLException e) {
+        } catch (SQLException | Exception e) {
             e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while checking credentials.");
             return false;
         }
+    }
+
+    private void storeNewUser(String username, String password) {
+        String sql = "INSERT INTO A222333.client_login (username, password) VALUES (?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, encrypt(username));
+            stmt.setString(2, encrypt(password));
+            stmt.executeUpdate();
+            showAlert(Alert.AlertType.INFORMATION, "Success", "User registered successfully!");
+        } catch (SQLException | Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while registering the user.");
+        }
+    }
+
+    private String encrypt(String data) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        SecretKey key = new SecretKeySpec(ENCRYPTION_KEY.getBytes(), "AES");
+        IvParameterSpec iv = new IvParameterSpec(ENCRYPTION_IV.getBytes());
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] encryptedData = cipher.doFinal(data.getBytes());
+        return Base64.getEncoder().encodeToString(encryptedData);
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String content) {
@@ -148,4 +151,9 @@ public class Login extends Application {
         alert.setContentText(content);
         alert.showAndWait();
     }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 }
+
