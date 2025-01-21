@@ -16,30 +16,60 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+
+
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.Text;
+import javafx.scene.image.Image;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class FriendList {
 
     private Connection connection;
     private List<Client> clients = new ArrayList<>();
-    private String loggedInUser = "Alice"; // This would be dynamically set based on the logged-in user
+    private String loggedInUser; // This will be set dynamically based on the logged-in user
     private BorderPane root;
 
-    public FriendList() {
+    // Constructor to initialize FriendList with the logged-in user's username
+    public FriendList(String loggedInUser) {
+        this.loggedInUser = loggedInUser;  // Dynamically set the logged-in user
+        // Ensure the UI is initialized in the constructor
         root = new BorderPane();
         root.setPrefSize(300, 457);
         root.setStyle("-fx-background-color: #FFE4E1;");
         initializeUI();
     }
 
+    // Method to set the database connection and fetch client data
     public void setConnection(Connection connection) {
         this.connection = connection;
         fetchClientData(); // Fetch data once connection is set
         updateUI(); // Update UI with fetched data
     }
 
+    // Method to get the root UI component
     public BorderPane getRoot() {
+        if (root == null) {
+            root = new BorderPane();
+            root.setPrefSize(300, 457);
+            root.setStyle("-fx-background-color: #FFE4E1;");
+            initializeUI();
+        }
         return root;
     }
 
+    // Method to initialize the UI components (layout and styles)
     private void initializeUI() {
         // Top section
         VBox topVBox = new VBox(5);
@@ -58,6 +88,7 @@ public class FriendList {
         root.setCenter(centerVBox);
     }
 
+    // Method to fetch the client data from the database excluding the logged-in user
     private void fetchClientData() {
         if (connection == null) {
             throw new IllegalStateException("Database connection is not set");
@@ -92,6 +123,7 @@ public class FriendList {
         }
     }
 
+    // Method to update the UI with the fetched client data
     private void updateUI() {
         VBox centerVBox = new VBox(10);
         centerVBox.setPadding(new Insets(10));
@@ -100,6 +132,18 @@ public class FriendList {
         Label friendsLabel = new Label("Friends");
         friendsLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
         centerVBox.getChildren().add(friendsLabel);
+        // Create a Group Chat button beside the Friends label
+Button groupChatButton = new Button("Group Chat");
+groupChatButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white;");
+groupChatButton.setOnAction(e -> openGroupChatScreen());
+
+// Add the Group Chat button to the center VBox (beside Friends label)
+HBox headerBox = new HBox(10);
+headerBox.setAlignment(Pos.CENTER_LEFT);
+headerBox.getChildren().addAll(friendsLabel, groupChatButton);
+
+// Add headerBox (containing Friends label and Group Chat button) to the center VBox
+centerVBox.getChildren().add(headerBox);
 
         // Display the client profiles
         for (Client client : clients) {
@@ -147,23 +191,54 @@ public class FriendList {
         root.setCenter(centerVBox);
     }
 
-
-    // Method to open the chat screen for the selected friend
+    // Method to open the chat screen with a selected friend
     private void openChatScreen(String friendUsername) {
         System.out.println("Opening chat screen with " + friendUsername);
-    
+
         // Fetch the friend's image path from the database
         String friendImagePath = getFriendImagePath(friendUsername);
-    
-        // Pass both username and image path to the Chat constructor
-        Chat chatApp = new Chat(friendUsername, friendImagePath);
-        root.setCenter(chatApp.getRoot()); // Update the center with the chat screen
+
+        // Server details (these can be dynamically set)
+        String serverAddress = "127.0.0.1"; // Replace with actual server address
+        int serverPort = 12345; // Replace with actual server port
+
+        // Pass the parameters to the Chat constructor
+        Chat chatApp = new Chat(loggedInUser, friendUsername, friendImagePath, serverAddress, serverPort);
+
+        // Get the root VBox from the Chat object and set it as the center of FriendList UI
+        VBox chatRoot = chatApp.getRoot();
+        if (chatRoot != null) {
+            root.setCenter(chatRoot);
+        } else {
+            System.err.println("Failed to load chat UI");
+        }
     }
-    
+    // Method to open the group chat screen
+private void openGroupChatScreen() {
+    System.out.println("Opening group chat screen");
+
+    // Create a Chat instance with group details (can pass null for username if it's a group chat)
+    String serverAddress = "127.0.0.1"; // Replace with actual server address
+    int serverPort = 12345; // Replace with actual server port
+
+    // Create GroupChat instance (example: for group, no specific friend)
+    Chat chatApp = new Chat(loggedInUser, "GroupChat", null, serverAddress, serverPort);
+
+    // Get the root VBox from the Chat object and set it as the center of FriendList UI
+    VBox chatRoot = chatApp.getRoot();
+    if (chatRoot != null) {
+        root.setCenter(chatRoot);
+    } else {
+        System.err.println("Failed to load chat UI");
+    }
+}
+
+
+    // Method to get the friend's image path from the database
     private String getFriendImagePath(String friendUsername) {
         String imagePath = null;
         String query = "SELECT profile_image_path FROM client_profile WHERE username = ?";
-    
+
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setString(1, friendUsername);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -176,8 +251,6 @@ public class FriendList {
         }
         return imagePath;
     }
-    
-
 
     // Client class to store username, email, status, and profile image path
     static class Client {
