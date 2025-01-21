@@ -1,6 +1,6 @@
 package com.csc3202.lab.project;
 
-import javafx.application.Platform;
+import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -11,26 +11,27 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Popup;
 
-import java.io.File;
+import java.io.*;
+import java.net.Socket;
+import java.util.UUID;
 
-public class Chat {
+public class Chat extends Application {
     private ChatClientSocket clientSocket;
     private VBox chatArea;
     private TextField messageInput;
     private String username;
     private String friendUsername;
     private String friendImagePath;
-    private VBox root;
 
-    // Temporary no-argument constructor for testing purposes
+    // "Temporary no-argument constructor for testing purposes".
     public Chat() {
+        // "Initialize with default values".
         this("Mike", "Mike", null, "127.0.0.1", 12345);
     }
 
@@ -44,14 +45,11 @@ public class Chat {
         } catch (Exception e) {
             System.err.println("Failed to connect to server: " + e.getMessage());
         }
-
-        initializeUI();
-        receiveMessages();
     }
 
-    // Initialize the UI layout
-    private void initializeUI() {
-        root = new VBox();
+    @Override
+    public void start(Stage stage) {
+        VBox root = new VBox();
         root.setStyle("-fx-background-color: #FFB6C1;");
         root.setPadding(new Insets(10));
         root.setSpacing(10);
@@ -63,8 +61,8 @@ public class Chat {
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setStyle("-fx-background-color: #FFE4E1;");
 
-        Circle avatar = loadAvatar(friendImagePath);
-        Text friendLabel = new Text(friendUsername);
+        Circle avatar = loadAvatar(null);
+        Text friendLabel = new Text(username); // 显示随机生成的用户名
         friendLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         topBar.getChildren().addAll(avatar, friendLabel);
 
@@ -83,6 +81,17 @@ public class Chat {
         inputArea.setPadding(new Insets(10));
         inputArea.setAlignment(Pos.CENTER);
 
+        // 表情包按钮
+        Button emojiButton = new Button();
+        ImageView emojiIcon = new ImageView(new Image("file:C:/Users/HP/Desktop/project-main/屏幕截图 2025-01-21 185634.png")); // 本地表情图片路径
+        emojiIcon.setFitWidth(20);
+        emojiIcon.setFitHeight(20);
+        emojiButton.setGraphic(emojiIcon);
+        emojiButton.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #FF69B4; -fx-border-radius: 20; -fx-alignment: center;");
+        Popup emojiPicker = createEmojiPicker();
+        emojiButton.setOnAction(event -> emojiPicker.show(messageInput.getScene().getWindow()));
+
+        // 文本输入框
         messageInput = new TextField();
         messageInput.setPromptText("Type a message...");
         messageInput.setPrefWidth(250);
@@ -100,7 +109,7 @@ public class Chat {
                         "-fx-min-height: 40px;"
         );
         Popup emojiPicker = createEmojiPicker();
-        emojiButton.setOnAction(event -> emojiPicker.show(root.getScene().getWindow()));
+        emojiButton.setOnAction(event -> emojiPicker.show(stage));
 
         Button cameraButton = new Button("📷");
         cameraButton.setPrefSize(40, 40);
@@ -115,36 +124,32 @@ public class Chat {
         );
         cameraButton.setOnAction(event -> handleFileSelection());
 
+        // 发送按钮
         Button sendButton = new Button("Send");
+        sendButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-border-radius: 5; -fx-font-size: 14px;");
         sendButton.setPrefHeight(40);
-        sendButton.setStyle(
-                "-fx-background-color: #FF69B4; " +
-                        "-fx-text-fill: white; " +
-                        "-fx-border-radius: 5; " +
-                        "-fx-font-size: 14px;" +
-                        "-fx-min-height: 40px; " +
-                        "-fx-pref-width: 60px; "
-        );
         sendButton.setOnAction(event -> sendMessage());
 
+        // 将控件添加到输入区域
         inputArea.getChildren().addAll(emojiButton, messageInput, cameraButton, sendButton);
 
         root.getChildren().addAll(topBar, chatScrollPane, inputArea);
+
+        Scene scene = new Scene(root, 400, 600);
+        stage.setMinWidth(400);
+        stage.setMinHeight(600);
+        stage.setScene(scene);
+        stage.setTitle("HEART2HEART - " + username);
+        stage.show();
+
+        receiveMessages();
     }
 
     private void sendMessage() {
         String message = messageInput.getText().trim();
         if (!message.isEmpty() && clientSocket != null) {
-            // Check if it's a private message or group message
-            if (friendUsername != null && !friendUsername.equals("GroupChat")) {
-                // Send private message to friend
-                clientSocket.sendMessage(message); // Just send the message content
-                addMessage(username + ": " + message, true); // Add sender's name for display
-            } else {
-                // Send message to group chat
-                clientSocket.sendMessage("Group: " + message);
-                addMessage(username + " (Group): " + message, true);
-            }
+            clientSocket.sendMessage(message);
+            addMessage(username + ": " + message, true);
             messageInput.clear();
         }
     }
@@ -159,8 +164,7 @@ public class Chat {
                     while (true) {
                         String receivedMessage = clientSocket.receiveMessage();
                         if (receivedMessage != null) {
-                            // Use Platform.runLater to ensure UI updates happen on the JavaFX thread
-                            Platform.runLater(() -> addMessage(receivedMessage, false));
+                            addMessage(receivedMessage, false);
                         }
                     }
                 } catch (Exception e) {
@@ -195,38 +199,21 @@ public class Chat {
         messageBubble.setStyle(isUser
                 ? "-fx-background-color: #DFF0D8; -fx-background-radius: 5;"
                 : "-fx-background-color: #F2DEDE; -fx-background-radius: 5;");
-        
-        messageBox.getChildren().add(messageBubble);
-    
-        // Add message to chat area on JavaFX thread
-        Platform.runLater(() -> {
-            // Check if the last message is the same as the current one to avoid duplicates
-            if (chatArea.getChildren().isEmpty() || 
-                !(chatArea.getChildren().get(chatArea.getChildren().size() - 1) instanceof HBox)) {
-                chatArea.getChildren().add(messageBox);
-            } else {
-                HBox lastMessageBox = (HBox) chatArea.getChildren().get(chatArea.getChildren().size() - 1);
-                // Check if the last message bubble is a TextFlow
-                if (lastMessageBox.getChildren().get(0) instanceof TextFlow) {
-                    TextFlow lastMessageBubble = (TextFlow) lastMessageBox.getChildren().get(0);
-                    Text lastMessageText = (Text) lastMessageBubble.getChildren().get(0);
-                    
-                    // Check if the last message's text is the same as the current one
-                    if (!lastMessageText.getText().equals(message)) {
-                        chatArea.getChildren().add(messageBox);
-                    }
-                } else {
-                    // If last message is not TextFlow, just add the new message
-                    chatArea.getChildren().add(messageBox);
-                }
-            }
-        });
+
+        ImageView avatar = new ImageView(new Image(isUser
+                ? "https://via.placeholder.com/30/00FF00/FFFFFF?text=U"
+                : "https://via.placeholder.com/30/0000FF/FFFFFF?text=F"));
+        avatar.setFitWidth(30);
+        avatar.setFitHeight(30);
+
+        if (isUser) {
+            messageBox.getChildren().addAll(messageBubble, avatar);
+        } else {
+            messageBox.getChildren().addAll(avatar, messageBubble);
+        }
+
+        chatArea.getChildren().add(messageBox);
     }
-    
-    
-    
-    
-    
 
     private Circle loadAvatar(String imagePath) {
         Circle circle = new Circle(15);
@@ -247,6 +234,7 @@ public class Chat {
         String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
         for (int i = 0; i < emojis.length; i++) {
             Button emojiButton = new Button(emojis[i]);
+            emojiButton.setStyle("-fx-font-size: 16px;");
             emojiButton.setOnAction(event -> {
                 messageInput.setText(messageInput.getText() + emojiButton.getText());
                 popup.hide();
@@ -259,11 +247,24 @@ public class Chat {
 
     private void handleFileSelection() {
         FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select an Image");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
-            clientSocket.sendMessage("File shared: " + file.getName());
-            addMessage("You shared a file: " + file.getName(), true);
+            String message = username + " shared an image: " + file.getName();
+            out.println(message);
+            addMessage(message, true);
         }
+    }
+
+    private Circle loadAvatar(String imagePath) {
+        Circle circle = new Circle(15);
+        circle.setFill(Color.LIGHTPINK);
+        return circle;
+    }
+
+    private String generateRandomUsername() {
+        return "User_" + UUID.randomUUID().toString().substring(0, 8); // 使用 UUID 生成唯一用户名
     }
 
     public VBox getRoot() {
