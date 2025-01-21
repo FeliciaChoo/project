@@ -1,172 +1,188 @@
 package com.csc3202.lab.project;
-import javafx.scene.shape.Circle;
-import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
-import javafx.stage.Popup;
 import javafx.stage.FileChooser;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
-import javafx.util.Duration;
+
 import java.io.File;
 
-
-public class Chat {
-
-    private String friendImagePath;
+public class Chat extends Application {
+    private ChatClientSocket clientSocket;
+    private VBox chatArea;
     private TextField messageInput;
+    private String username;
     private String friendUsername;
-    private VBox root; // This should be the layout for the chat screen.
+    private String friendImagePath;
 
-    // Constructor to pass the friend's username to the chat screen
-    public Chat(String friendUsername, String friendImagePath) {
-        this.friendUsername = friendUsername;
-        this.friendImagePath = friendImagePath;
-        this.root = new VBox(); // Initialize root layout
-        root.setStyle("-fx-background-color: #FFB6C1;");
-        initializeUI(); // Call method to initialize UI components
+    // "Temporary no-argument constructor for testing purposes".
+    public Chat() {
+        // "Initialize with default values".
+        this("Mike", "Mike", null, "127.0.0.1", 12345);
     }
 
-    // Method to initialize the UI components
-    private void initializeUI() {
-        messageInput = new TextField();
-        messageInput.setPromptText("Type a message...");
-        messageInput.setPrefWidth(150);
+    public Chat(String username, String friendUsername, String friendImagePath, String serverAddress, int serverPort) {
+        this.username = username;
+        this.friendUsername = friendUsername;
+        this.friendImagePath = friendImagePath;
 
-        // Top bar layout
+        try {
+            this.clientSocket = new ChatClientSocket(serverAddress, serverPort, username);
+        } catch (Exception e) {
+            System.err.println("Failed to connect to server: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void start(Stage stage) {
+        VBox root = new VBox();
+        root.setStyle("-fx-background-color: #FFB6C1;");
+        root.setPadding(new Insets(10));
+        root.setSpacing(10);
+
+        // 顶部好友信息栏
         HBox topBar = new HBox();
         topBar.setPadding(new Insets(10));
         topBar.setSpacing(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setStyle("-fx-background-color: #FFE4E1;");
-        // Load the friend's avatar and set it as the fill of the circle
-        Circle avatarCircle = loadAvatar(friendImagePath);
-   
-        // Title with the friend's username
-        Label titleLabel = new Label(friendUsername); // Display friend's username
-        titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #000000;");
 
-        // Search and Options Buttons
-        HBox rightIcons = new HBox();
-        rightIcons.setSpacing(10);
-        rightIcons.setAlignment(Pos.CENTER_RIGHT);
+        Circle avatar = loadAvatar(friendImagePath);
+        Text friendLabel = new Text(friendUsername);
+        friendLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        topBar.getChildren().addAll(avatar, friendLabel);
 
-        TextField searchInput = new TextField();
-        searchInput.setPromptText("Search...");
-        searchInput.setPrefWidth(150);
-        searchInput.setVisible(false);
-
-        Button exploreIcon = new Button("🔍");
-        exploreIcon.setStyle("-fx-background-color: transparent; -fx-font-size: 16px;");
-
-        rightIcons.getChildren().addAll(searchInput, exploreIcon);
-        HBox.setHgrow(rightIcons, Priority.ALWAYS);
-        topBar.getChildren().addAll(avatarCircle, titleLabel, rightIcons);
-
-        // Chat area (scrollable)
-        ScrollPane chatScroll = new ScrollPane();
-        VBox chatArea = new VBox();
+        // 聊天内容区
+        chatArea = new VBox();
         chatArea.setSpacing(10);
         chatArea.setPadding(new Insets(10));
-        chatScroll.setContent(chatArea);
-        chatScroll.setFitToWidth(true);
-        chatScroll.setStyle("-fx-background-color: transparent;");
+        ScrollPane chatScrollPane = new ScrollPane(chatArea);
+        chatScrollPane.setFitToWidth(true);
+        chatScrollPane.setPrefHeight(400);
+        chatScrollPane.setStyle("-fx-background-color: transparent;");
 
-        // Bottom input area
+        // 输入区域
         HBox inputArea = new HBox();
         inputArea.setSpacing(10);
         inputArea.setPadding(new Insets(10));
         inputArea.setAlignment(Pos.CENTER);
 
+        messageInput = new TextField();
+        messageInput.setPromptText("Type a message...");
+        messageInput.setPrefWidth(250);
+        messageInput.setPrefHeight(40);
+
         Button emojiButton = new Button("😊");
+        emojiButton.setPrefSize(40, 40);
+        emojiButton.setStyle(
+                "-fx-background-color: #FFFFFF; " +
+                        "-fx-border-color: #FF69B4; " +
+                        "-fx-border-radius: 20; " +
+                        "-fx-font-size: 16px;" +
+                        "-fx-alignment: center; " +
+                        "-fx-min-width: 40px; " +
+                        "-fx-min-height: 40px;"
+        );
+        Popup emojiPicker = createEmojiPicker();
+        emojiButton.setOnAction(event -> emojiPicker.show(stage));
 
-        Popup emojiPicker = new Popup();
-        emojiPicker.setAutoHide(true);
-        GridPane emojiGrid = new GridPane();
-        emojiGrid.setPadding(new Insets(10));
-        emojiGrid.setHgap(5);
-        emojiGrid.setVgap(5);
-        String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
-        for (int i = 0; i < emojis.length; i++) {
-            Button emoji = new Button(emojis[i]);
-            emoji.setStyle("-fx-font-size: 18px; -fx-background-color: transparent;");
-            emoji.setOnAction(event -> {
-                emojiPicker.hide();
-                messageInput.setText(messageInput.getText() + emoji.getText());
-            });
-            emojiGrid.add(emoji, i % 5, i / 5);
-        }
-        emojiPicker.getContent().add(emojiGrid);
-        emojiButton.setOnAction(event -> emojiPicker.show(new Stage())); // Create a new stage for emoji picker
-
-        // Image upload button
         Button cameraButton = new Button("📷");
-        cameraButton.setStyle("-fx-font-size: 16px;");
-        cameraButton.setOnAction(event -> openFileChooser(chatArea));
+        cameraButton.setPrefSize(40, 40);
+        cameraButton.setStyle(
+                "-fx-background-color: #FFFFFF; " +
+                        "-fx-border-color: #FF69B4; " +
+                        "-fx-border-radius: 20; " +
+                        "-fx-font-size: 16px;" +
+                        "-fx-alignment: center; " +
+                        "-fx-min-width: 40px; " +
+                        "-fx-min-height: 40px;"
+        );
+        cameraButton.setOnAction(event -> handleFileSelection());
 
-        Button sendButton = new Button("⬆");
-        sendButton.setStyle("-fx-font-size: 16px;");
-        sendButton.setOnAction(event -> sendMessage(chatArea, messageInput));
-        messageInput.setOnAction(event -> sendMessage(chatArea, messageInput));
+        Button sendButton = new Button("Send");
+        sendButton.setPrefHeight(40);
+        sendButton.setStyle(
+                "-fx-background-color: #FF69B4; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-border-radius: 5; " +
+                        "-fx-font-size: 14px;" +
+                        "-fx-min-height: 40px; " +
+                        "-fx-pref-width: 60px; "
+        );
+        sendButton.setOnAction(event -> sendMessage());
+
+        // 将控件添加到输入区域
         inputArea.getChildren().addAll(emojiButton, messageInput, cameraButton, sendButton);
-        // Add components to the root layout
-        root.getChildren().addAll(topBar, chatScroll, inputArea);
-        VBox.setVgrow(chatScroll, Priority.ALWAYS);
+
+        root.getChildren().addAll(topBar, chatScrollPane, inputArea);
+
+        Scene scene = new Scene(root, 400, 600);
+        stage.setMinWidth(400);
+        stage.setMinHeight(600);
+        stage.setScene(scene);
+        stage.setTitle("HEART2HEART - " + username);
+        stage.show();
+
+        receiveMessages();
     }
 
-    // Method to handle image selection
-    private void openFileChooser(VBox chatArea) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-        File selectedFile = fileChooser.showOpenDialog(new Stage());
-        if (selectedFile != null) {
-            // Handle image upload logic
-            addMessage(chatArea, "Image: " + selectedFile.getName(), true);
-        }
-    }
-
-    // Method to send a message
-    private void sendMessage(VBox chatArea, TextField messageInput) {
+    private void sendMessage() {
         String message = messageInput.getText().trim();
-        if (!message.isEmpty()) {
-            addMessage(chatArea, message, true);
+        if (!message.isEmpty() && clientSocket != null) {
+            clientSocket.sendMessage(message);
+            addMessage(username + ": " + message, true);
             messageInput.clear();
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(2));
-            delay.setOnFinished(e -> simulateFriendReply(chatArea, "Okay, got it!"));
-            delay.play();
         }
     }
 
-    // Method to add a message to the chat area
-    private void addMessage(VBox chatArea, String message, boolean isUser) {
+    private void receiveMessages() {
+        if (clientSocket != null) {
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        String receivedMessage = clientSocket.receiveMessage();
+                        if (receivedMessage != null) {
+                            addMessage(receivedMessage, false);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error receiving messages: " + e.getMessage());
+                }
+            }).start();
+        }
+    }
+
+    private void addMessage(String message, boolean isUser) {
         HBox messageBox = new HBox();
         messageBox.setSpacing(10);
         messageBox.setAlignment(isUser ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
+
+        TextFlow messageBubble = new TextFlow(new Text(message));
+        messageBubble.setPadding(new Insets(10));
+        messageBubble.setMaxWidth(250);
+        messageBubble.setStyle(isUser
+                ? "-fx-background-color: #DFF0D8; -fx-background-radius: 5;"
+                : "-fx-background-color: #F2DEDE; -fx-background-radius: 5;");
 
         ImageView avatar = new ImageView(new Image(isUser
                 ? "https://via.placeholder.com/30/00FF00/FFFFFF?text=U"
                 : "https://via.placeholder.com/30/0000FF/FFFFFF?text=F"));
         avatar.setFitWidth(30);
         avatar.setFitHeight(30);
-
-        TextFlow messageBubble = new TextFlow(new Text(message));
-        messageBubble.setPadding(new Insets(10));
-        messageBubble.setStyle(isUser
-                ? "-fx-background-color: #FFB6C1; -fx-background-radius: 10;" // User message background pink
-                : "-fx-background-color: #FFFFFF; -fx-background-radius: 10;");
-        messageBubble.setMaxWidth(250);
 
         if (isUser) {
             messageBox.getChildren().addAll(messageBubble, avatar);
@@ -177,60 +193,45 @@ public class Chat {
         chatArea.getChildren().add(messageBox);
     }
 
-    // Simulate friend replying to a message with typing effect
-    private void simulateFriendReply(VBox chatArea, String reply) {
-        HBox friendMessageBox = new HBox();
-        friendMessageBox.setSpacing(10);
-        friendMessageBox.setAlignment(Pos.CENTER_LEFT);
-
-        ImageView friendAvatar = new ImageView(new Image("https://via.placeholder.com/30/0000FF/FFFFFF?text=F"));
-        friendAvatar.setFitWidth(30);
-        friendAvatar.setFitHeight(30);
-
-        TextFlow typingBubble = new TextFlow();
-        typingBubble.setPadding(new Insets(10));
-        typingBubble.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10;");
-        typingBubble.setMaxWidth(250);
-        friendMessageBox.getChildren().addAll(friendAvatar, typingBubble);
-        chatArea.getChildren().add(friendMessageBox);
-
-        Timeline typingEffect = new Timeline();
-        StringBuilder displayedText = new StringBuilder();
-        for (int i = 0; i < reply.length(); i++) {
-            int index = i;
-            typingEffect.getKeyFrames().add(new KeyFrame(Duration.millis(50 * i), e -> {
-                displayedText.append(reply.charAt(index));
-                typingBubble.getChildren().clear();
-                typingBubble.getChildren().add(new Text(displayedText.toString()));
-            }));
+    private Circle loadAvatar(String imagePath) {
+        Circle circle = new Circle(15);
+        if (imagePath != null && !imagePath.isEmpty()) {
+            circle.setFill(new ImagePattern(new Image("file:" + imagePath)));
+        } else {
+            circle.setFill(Color.LIGHTPINK);
         }
-        typingEffect.play();
+        return circle;
     }
 
-   // Method to load the friend's avatar as a circular profile image
-   private Circle loadAvatar(String imagePath) {
-       Circle profilePic = new Circle(15); // Circle with radius 15 for the avatar
-   
-       if (imagePath != null && !imagePath.isEmpty()) {
-           try {
-               // Attempt to load the image from the given path
-               Image image = new Image("file:" + imagePath);
-               profilePic.setFill(new ImagePattern(image)); // Set the image as the fill inside the circle
-           } catch (Exception e) {
-               // Handle case where image path is invalid or not available
-               profilePic.setFill(Color.LIGHTPINK); // Fallback to a light pink color if image is invalid
-           }
-       } else {
-           // Default color if no image path is provided
-           profilePic.setFill(Color.LIGHTPINK); // Default fill color
-       }
-   
-       return profilePic;
-   }
-   
+    private Popup createEmojiPicker() {
+        Popup popup = new Popup();
+        GridPane emojiGrid = new GridPane();
+        emojiGrid.setPadding(new Insets(10));
+        emojiGrid.setHgap(5);
+        emojiGrid.setVgap(5);
+        String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
+        for (int i = 0; i < emojis.length; i++) {
+            Button emojiButton = new Button(emojis[i]);
+            emojiButton.setOnAction(event -> {
+                messageInput.setText(messageInput.getText() + emojiButton.getText());
+                popup.hide();
+            });
+            emojiGrid.add(emojiButton, i % 5, i / 5);
+        }
+        popup.getContent().add(emojiGrid);
+        return popup;
+    }
 
-    // Getter for the root layout
-    public VBox getRoot() {
-        return root;
+    private void handleFileSelection() {
+        FileChooser fileChooser = new FileChooser();
+        File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+            clientSocket.sendMessage("File shared: " + file.getName());
+            addMessage("You shared a file: " + file.getName(), true);
+        }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
