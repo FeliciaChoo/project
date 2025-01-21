@@ -16,7 +16,7 @@ public class ChatClientSocket {
         sendMessage("User " + username + " has joined the chat.");
     }
 
-    public void sendMessage(String message) {`
+    public void sendMessage(String message) {
         out.println(message);
     }
 
