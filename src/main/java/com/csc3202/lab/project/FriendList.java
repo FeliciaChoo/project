@@ -135,7 +135,7 @@ public class FriendList {
         // Create a Group Chat button beside the Friends label
 Button groupChatButton = new Button("Group Chat");
 groupChatButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white;");
-groupChatButton.setOnAction(e -> openGroupChatScreen());
+groupChatButton.setOnAction(e -> openChatScreen(null, true));
 
 // Add the Group Chat button to the center VBox (beside Friends label)
 HBox headerBox = new HBox(10);
@@ -181,7 +181,7 @@ centerVBox.getChildren().add(headerBox);
             // Chat button to open the chat screen
             Button chatButton = new Button("Chat");
             chatButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white;");
-            chatButton.setOnAction(e -> openChatScreen(client.getUsername()));
+            chatButton.setOnAction(e -> openChatScreen(client.getUsername(),false));
 
             // Add profile, user info, and chat button with spacer
             friendBox.getChildren().addAll(profilePic, userInfo, spacer, chatButton);
@@ -192,46 +192,36 @@ centerVBox.getChildren().add(headerBox);
     }
 
     // Method to open the chat screen with a selected friend
-    private void openChatScreen(String friendUsername) {
-        System.out.println("Opening chat screen with " + friendUsername);
+    // Method to open the chat screen with a selected friend or group
+private void openChatScreen(String friendUsername, boolean isGroupChat) {
+    System.out.println("Opening " + (isGroupChat ? "group" : "private") + " chat screen");
 
-        // Fetch the friend's image path from the database
-        String friendImagePath = getFriendImagePath(friendUsername);
+    // Create Chat instance based on the type of chat (group or private)
+    String serverAddress = "127.0.0.1"; // Replace with actual server address
+    int serverPort = 12345; // Replace with actual server port
 
-        // Server details (these can be dynamically set)
-        String serverAddress = "127.0.0.1"; // Replace with actual server address
-        int serverPort = 12345; // Replace with actual server port
-
-        // Pass the parameters to the Chat constructor
-        Chat chatApp = new Chat(loggedInUser, friendUsername, friendImagePath, serverAddress, serverPort);
-
-        // Get the root VBox from the Chat object and set it as the center of FriendList UI
+    // If it's a group chat, pass "Group Chat" as the friendUsername
+    if (isGroupChat) {
+        Chat chatApp = new Chat(loggedInUser, "Group Chat", null, serverAddress, serverPort, isGroupChat);
         VBox chatRoot = chatApp.getRoot();
         if (chatRoot != null) {
             root.setCenter(chatRoot);
         } else {
-            System.err.println("Failed to load chat UI");
+            System.err.println("Failed to load group chat UI");
+        }
+    } else {
+        // If it's a private chat, pass the friend's username
+        String friendImagePath = getFriendImagePath(friendUsername); // Fetch friend's profile image
+        Chat chatApp = new Chat(loggedInUser, friendUsername, friendImagePath, serverAddress, serverPort, isGroupChat);
+        VBox chatRoot = chatApp.getRoot();
+        if (chatRoot != null) {
+            root.setCenter(chatRoot);
+        } else {
+            System.err.println("Failed to load private chat UI");
         }
     }
-    // Method to open the group chat screen
-private void openGroupChatScreen() {
-    System.out.println("Opening group chat screen");
-
-    // Create a Chat instance with group details (can pass null for username if it's a group chat)
-    String serverAddress = "127.0.0.1"; // Replace with actual server address
-    int serverPort = 12345; // Replace with actual server port
-
-    // Create GroupChat instance (example: for group, no specific friend)
-    Chat chatApp = new Chat(loggedInUser, "GroupChat", null, serverAddress, serverPort);
-
-    // Get the root VBox from the Chat object and set it as the center of FriendList UI
-    VBox chatRoot = chatApp.getRoot();
-    if (chatRoot != null) {
-        root.setCenter(chatRoot);
-    } else {
-        System.err.println("Failed to load chat UI");
-    }
 }
+
 
 
     // Method to get the friend's image path from the database

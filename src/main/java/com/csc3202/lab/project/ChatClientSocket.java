@@ -8,14 +8,16 @@ public class ChatClientSocket {
     private PrintWriter out;
     private BufferedReader in;
 
-    public ChatClientSocket(String serverAddress, int serverPort, String username) throws IOException {
-        this.socket = new Socket(serverAddress, serverPort);
-        this.out = new PrintWriter(socket.getOutputStream(), true);
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-        sendMessage("User " + username + " has joined the chat.");
+    public ChatClientSocket(String serverAddress, int serverPort, String username, String roomId) throws IOException {
+        // Connect to the server
+        socket = new Socket(serverAddress, serverPort);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    
+        // Send initial data to join the room
+        out.println("JOIN " + roomId + " " + username);
     }
-
+    
     public void sendMessage(String message) {
         out.println(message);
     }
