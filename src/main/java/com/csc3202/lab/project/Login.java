@@ -112,19 +112,30 @@ public class Login extends Application {
     private void handleLogIn(TextField usernameField, PasswordField passwordField) {
         String username = usernameField.getText().trim();
         String password = passwordField.getText().trim();
-
+    
         if (username.isEmpty() || password.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Error", "Both username and password are required.");
             return;
         }
-
+    
         if (checkCredentials(username, password)) {
+            updateStatusToOnline(username);
+            // This line will work correctly as it calls loadMainScreen() in Main and passes the primaryStage
             mainApp.loadMainScreen(username);  // Load the main screen after successful login
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Invalid username or password.");
         }
     }
-
+    private void updateStatusToOnline(String username) {
+        String updateSql = "UPDATE client_profile SET status = 'online' WHERE username = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
+            stmt.setString(1, username);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to update status to online.");
+        }
+    }
     private void handleSignIn(TextField usernameField, PasswordField passwordField) {
         // Similar logic for handling sign-in
     }

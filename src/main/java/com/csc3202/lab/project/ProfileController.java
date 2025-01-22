@@ -7,6 +7,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,6 +31,8 @@ public class ProfileController {
     private Button uploadImageButton;
     @FXML
     private Button saveProfileButton;
+    @FXML
+    private Button logOutButton;
 
     private final FileChooser fileChooser = new FileChooser();
     private Connection connection;
@@ -94,6 +98,7 @@ public class ProfileController {
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
         uploadImageButton.setOnAction(e -> handleUploadImage());
         saveProfileButton.setOnAction(e -> handleSaveProfile());  // Action for save profile button
+        logOutButton.setOnAction(e -> handleLogout()); 
     }
 
     // Handle uploading the profile image
@@ -204,6 +209,14 @@ public class ProfileController {
 
     // When the user logs out, change their status to "offline"
     public void handleLogout() {
-        updateStatus("offline");
+        updateStatus("offline"); // Update user status to "offline"
+    // Redirect to the login scene
+    try {
+        Login login = new Login(new Main()); // Pass your main app reference
+        login.start((Stage) logOutButton.getScene().getWindow()); // Use the current stage
+    } catch (Exception e) {
+        e.printStackTrace();
+        System.err.println("Error loading login scene: " + e.getMessage());
+    }
     }
 }

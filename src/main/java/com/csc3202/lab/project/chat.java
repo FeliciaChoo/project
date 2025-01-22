@@ -1,13 +1,16 @@
 package com.csc3202.lab.project;
 
+import java.io.ByteArrayInputStream;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
@@ -16,30 +19,33 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Popup;
-
+import javafx.stage.Stage;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.io.File;
+import java.io.IOException;
 
 public class Chat {
     private ChatClientSocket clientSocket;
+    private Main mainApp;
     private VBox chatArea;
     private TextField messageInput;
     private String username;
     private String friendUsername;
     private String friendImagePath;
     private VBox root;
-    private boolean isGroupChat; // Flag to identify if it's a group chat or private chat
+    private boolean isGroupChat;
+    private ChatClientSocket chatClientSocket;
 
-    public Chat(String username, String friendUsername, String friendImagePath, String serverAddress, int serverPort, boolean isGroupChat) {
+    public Chat(String username, String friendUsername, String friendImagePath, String serverAddress, int serverPort, boolean isGroupChat, Main mainApp) {
         this.username = username;
         this.friendUsername = friendUsername;
         this.friendImagePath = friendImagePath;
         this.isGroupChat = isGroupChat;
-    
-        // Generate a unique room ID for private chats
-        String roomId = isGroupChat ? "group_chat_room" : generateRoomId(username, friendUsername);
+        this.mainApp = mainApp; // Initialize mainApp
     
         try {
-            this.clientSocket = new ChatClientSocket(serverAddress, serverPort, username, roomId);
+            this.clientSocket = new ChatClientSocket(serverAddress, serverPort, username);
         } catch (Exception e) {
             System.err.println("Failed to connect to server: " + e.getMessage());
         }
@@ -48,12 +54,6 @@ public class Chat {
         receiveMessages();
     }
     
-    // Helper method to generate a unique room ID
-    private String generateRoomId(String user1, String user2) {
-        return user1.compareTo(user2) < 0 ? user1 + "_" + user2 : user2 + "_" + user1;
-    }
-    
-
 
     private void initializeUI() {
         root = new VBox();
@@ -70,7 +70,15 @@ public class Chat {
         Circle avatar = loadAvatar(friendImagePath);
         Text friendLabel = new Text(friendUsername);
         friendLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        topBar.getChildren().addAll(avatar, friendLabel);
+
+        Button qcButton = new Button("Quit Chat");
+        qcButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-border-radius: 3; -fx-font-size: 14px; -fx-min-width: 60px; -fx-min-height: 40px;");
+        qcButton.setOnAction(event -> quitChat());
+
+        HBox.setHgrow(qcButton, Priority.ALWAYS);
+        HBox.setMargin(qcButton, new Insets(0, 30, 0, 0));
+
+        topBar.getChildren().addAll(avatar, friendLabel, qcButton);
 
         chatArea = new VBox();
         chatArea.setSpacing(10);
@@ -92,44 +100,22 @@ public class Chat {
 
         Button emojiButton = new Button("😊");
         emojiButton.setPrefSize(40, 40);
-        emojiButton.setStyle(
-                "-fx-background-color: #FFFFFF; " +
-                        "-fx-border-color: #FF69B4; " +
-                        "-fx-border-radius: 20; " +
-                        "-fx-font-size: 16px;" +
-                        "-fx-alignment: center; " +
-                        "-fx-min-width: 40px; " +
-                        "-fx-min-height: 40px;"
-        );
+        emojiButton.setStyle("-fx-background-color: #FF69B4; -fx-border-color: #FF69B4; -fx-border-radius: 20; -fx-font-size: 16px; -fx-alignment: center; -fx-min-width: 40px; -fx-min-height: 40px;");
+
         Popup emojiPicker = createEmojiPicker();
         emojiButton.setOnAction(event -> emojiPicker.show(root.getScene().getWindow()));
 
         Button cameraButton = new Button("📷");
         cameraButton.setPrefSize(40, 40);
-        cameraButton.setStyle(
-                "-fx-background-color: #FFFFFF; " +
-                        "-fx-border-color: #FF69B4; " +
-                        "-fx-border-radius: 20; " +
-                        "-fx-font-size: 16px;" +
-                        "-fx-alignment: center; " +
-                        "-fx-min-width: 40px; " +
-                        "-fx-min-height: 40px;"
-        );
+        cameraButton.setStyle("-fx-background-color: #FF69B4; -fx-border-color: #FF69B4; -fx-border-radius: 20; -fx-font-size: 16px; -fx-alignment: center; -fx-min-width: 40px; -fx-min-height: 40px;");
         cameraButton.setOnAction(event -> handleFileSelection());
 
-        Button sendButton = new Button("Send");
-        sendButton.setPrefHeight(40);
-        sendButton.setStyle(
-                "-fx-background-color: #FF69B4; " +
-                        "-fx-text-fill: white; " +
-                        "-fx-border-radius: 5; " +
-                        "-fx-font-size: 14px;" +
-                        "-fx-min-height: 40px; " +
-                        "-fx-pref-width: 60px; "
-        );
-        sendButton.setOnAction(event -> sendMessage());
+        Button emojiSendButton = new Button("▶");
+        emojiSendButton.setPrefHeight(40);
+        emojiSendButton.setStyle("-fx-background-color: #FF69B4; -fx-text-fill: white; -fx-border-radius: 5; -fx-font-size: 14px; -fx-min-height: 40px; -fx-pref-width: 60px;");
+        emojiSendButton.setOnAction(event -> sendMessage());
 
-        inputArea.getChildren().addAll(emojiButton, messageInput, cameraButton, sendButton);
+        inputArea.getChildren().addAll(emojiButton, messageInput, cameraButton, emojiSendButton);
 
         root.getChildren().addAll(topBar, chatScrollPane, inputArea);
     }
@@ -137,18 +123,13 @@ public class Chat {
     private void sendMessage() {
         String message = messageInput.getText().trim();
         if (!message.isEmpty() && clientSocket != null) {
-            // Format the message with the username
             String formattedMessage = username + ": " + message;
-    
             clientSocket.sendMessage(formattedMessage);
-    
-            // Add the message as a green bubble (sender's message only on the right side)
             addMessage(message, true, false);
-    
             messageInput.clear();
         }
     }
-    
+
     private void receiveMessages() {
         if (clientSocket != null) {
             new Thread(() -> {
@@ -157,15 +138,17 @@ public class Chat {
                     while ((receivedMessage = clientSocket.receiveMessage()) != null) {
                         String finalMessage = receivedMessage.trim();
     
-                        // Determine if the message is a system message
-                        boolean isSystemMessage = finalMessage.toLowerCase().contains("joined the chat");
+                        if (finalMessage.startsWith("IMAGE:")) {
+                            String base64Image = finalMessage.substring(6); // Remove "IMAGE:" prefix
+                            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+                            Platform.runLater(() -> displayImage(imageBytes));
+                        } else {
+                            boolean isSystemMessage = finalMessage.toLowerCase().contains("joined the chat");
+                            String sender = isSystemMessage ? "" : finalMessage.split(":")[0].trim();
     
-                        // Parse the sender's username from the received message
-                        String sender = isSystemMessage ? "" : finalMessage.split(":")[0].trim();
-    
-                        // Display the message
-                        if (isSystemMessage || !sender.equals(username)) {
-                            Platform.runLater(() -> addMessage(finalMessage, false, isSystemMessage));
+                            if (isSystemMessage || !sender.equals(username)) {
+                                Platform.runLater(() -> addMessage(finalMessage, false, isSystemMessage));
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -175,6 +158,7 @@ public class Chat {
         }
     }
     
+
     private void addMessage(String message, boolean isUser, boolean isSystemMessage) {
         HBox messageBox = new HBox();
         messageBox.setSpacing(10);
@@ -210,15 +194,17 @@ public class Chat {
         emojiGrid.setHgap(5);
         emojiGrid.setVgap(5);
         String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
+
         for (int i = 0; i < emojis.length; i++) {
-            Button emojiButton = new Button(emojis[i]);
-            emojiButton.setStyle("-fx-font-size: 16px;");
-            emojiButton.setOnAction(event -> {
-                messageInput.setText(messageInput.getText() + emojiButton.getText());
+            Button emojiChoice = new Button(emojis[i]);
+            emojiChoice.setStyle("-fx-font-size: 16px;");
+            emojiChoice.setOnAction(event -> {
+                messageInput.setText(messageInput.getText() + emojiChoice.getText());
                 popup.hide();
             });
-            emojiGrid.add(emojiButton, i % 5, i / 5);
+            emojiGrid.add(emojiChoice, i % 5, i / 5);
         }
+
         popup.getContent().add(emojiGrid);
         return popup;
     }
@@ -229,12 +215,46 @@ public class Chat {
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
-            String message = username + " shared an image: " + file.getName();
-            clientSocket.sendMessage(message);
-            addMessage(message, true,false);
+            try {
+                byte[] imageBytes = Files.readAllBytes(file.toPath());
+                clientSocket.sendImage(imageBytes);
+                addMessage("You shared an image", true, false);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("Failed to read image file: " + e.getMessage());
+            }
         }
     }
 
+    private void displayImage(byte[] imageBytes) {
+        Image image = new Image(new ByteArrayInputStream(imageBytes));
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(200);
+        imageView.setPreserveRatio(true);
+
+        HBox imageBox = new HBox();
+        imageBox.setAlignment(Pos.CENTER);
+        imageBox.getChildren().add(imageView);
+
+        Platform.runLater(() -> chatArea.getChildren().add(imageBox));
+    }
+    private void quitChat() {
+        // Add a system message to indicate the user has left the chat
+        String leaveMessage = username + " has left the chat.";
+        addMessage(leaveMessage, false, true);  // Set isSystemMessage to true
+    
+        if (chatClientSocket != null) {
+            chatClientSocket.disconnect(username); // Ensure proper disconnection
+        }
+    
+        // Go back to the main screen
+        if (mainApp != null) {
+            mainApp.loadMainScreen(username);
+        } else {
+            System.err.println("Main app reference is null.");
+        }
+    }
+    
     private Circle loadAvatar(String imagePath) {
         Circle circle = new Circle(15);
         if (imagePath != null && !imagePath.isEmpty()) {

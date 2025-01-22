@@ -11,25 +11,6 @@ import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.image.Image;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-
-
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.ImagePattern;
-import javafx.scene.shape.Circle;
-import javafx.scene.text.Text;
-import javafx.scene.image.Image;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +21,13 @@ public class FriendList {
     private List<Client> clients = new ArrayList<>();
     private String loggedInUser; // This will be set dynamically based on the logged-in user
     private BorderPane root;
+    private Main mainApp; // Reference to the main application
+
 
     // Constructor to initialize FriendList with the logged-in user's username
-    public FriendList(String loggedInUser) {
-        this.loggedInUser = loggedInUser;  // Dynamically set the logged-in user
-        // Ensure the UI is initialized in the constructor
+    public FriendList(String loggedInUser, Main mainApp) {
+        this.loggedInUser = loggedInUser;
+        this.mainApp = mainApp; // Store the reference to the main application
         root = new BorderPane();
         root.setPrefSize(300, 457);
         root.setStyle("-fx-background-color: #FFE4E1;");
@@ -202,7 +185,7 @@ private void openChatScreen(String friendUsername, boolean isGroupChat) {
 
     // If it's a group chat, pass "Group Chat" as the friendUsername
     if (isGroupChat) {
-        Chat chatApp = new Chat(loggedInUser, "Group Chat", null, serverAddress, serverPort, isGroupChat);
+        Chat chatApp = new Chat(loggedInUser, "Group Chat", null, serverAddress, serverPort, isGroupChat, mainApp);
         VBox chatRoot = chatApp.getRoot();
         if (chatRoot != null) {
             root.setCenter(chatRoot);
@@ -212,7 +195,7 @@ private void openChatScreen(String friendUsername, boolean isGroupChat) {
     } else {
         // If it's a private chat, pass the friend's username
         String friendImagePath = getFriendImagePath(friendUsername); // Fetch friend's profile image
-        Chat chatApp = new Chat(loggedInUser, friendUsername, friendImagePath, serverAddress, serverPort, isGroupChat);
+        Chat chatApp = new Chat(loggedInUser, friendUsername, friendImagePath, serverAddress, serverPort, isGroupChat,mainApp);
         VBox chatRoot = chatApp.getRoot();
         if (chatRoot != null) {
             root.setCenter(chatRoot);

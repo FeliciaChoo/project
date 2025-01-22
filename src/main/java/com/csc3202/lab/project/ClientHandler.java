@@ -4,68 +4,41 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-class ClientHandler extends Thread {
-    private final Socket socket;
-    private final BufferedReader in;
-    private final PrintWriter out;
-    private String username;
-    private String roomId;
+public class ClientHandler extends Thread {
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+    private Set<ClientHandler> clients;
 
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket, Set<ClientHandler> clients) {
         this.socket = socket;
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.clients = clients;
     }
 
     @Override
     public void run() {
         try {
-            // Read the client's username and roomId from the input
-            out.println("Enter your username:");
-            username = in.readLine();
-
-            out.println("Enter room ID (or type 'exit' to disconnect):");
-            roomId = in.readLine();
-
-            if ("exit".equalsIgnoreCase(roomId)) {
-                disconnect();
-                return;
-            }
-
-            // Add this client to the chat room
-            ChatServerSocket.addToRoom(roomId, this);
-            ChatServerSocket.broadcastMessage(roomId, username + " has joined the chat.");
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
 
             String message;
             while ((message = in.readLine()) != null) {
-                if (message.equalsIgnoreCase("exit")) {
-                    break;
-                }
-
-                // Broadcast the message to the room
-                ChatServerSocket.broadcastMessage(roomId, username + ": " + message);
+                broadcastMessage(message);
             }
         } catch (IOException e) {
             System.err.println("Error handling client: " + e.getMessage());
         } finally {
-            disconnect();
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    public void sendMessage(String message) {
-        out.println(message);
-    }
-
-    private void disconnect() {
-        try {
-            if (roomId != null) {
-                ChatServerSocket.removeFromRoom(roomId, this);
-                ChatServerSocket.broadcastMessage(roomId, username + " has left the chat.");
-            }
-
-            socket.close();
-        } catch (IOException e) {
-            System.err.println("Error disconnecting client: " + e.getMessage());
+    private void broadcastMessage(String message) {
+        for (ClientHandler client : clients) {
+            client.out.println(message);
         }
     }
 }
