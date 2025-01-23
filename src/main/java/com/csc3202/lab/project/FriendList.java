@@ -173,8 +173,6 @@ centerVBox.getChildren().add(headerBox);
 
         root.setCenter(centerVBox);
     }
-
-    // Method to open the chat screen with a selected friend
     // Method to open the chat screen with a selected friend or group
 private void openChatScreen(String friendUsername, boolean isGroupChat) {
     System.out.println("Opening " + (isGroupChat ? "group" : "private") + " chat screen");

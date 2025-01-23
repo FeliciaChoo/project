@@ -3,6 +3,7 @@ package com.csc3202.lab.project;
 import java.io.*;
 import java.net.*;
 import java.util.Base64;
+
 public class ChatClientSocket {
     private Socket socket;
     private PrintWriter out;
@@ -22,19 +23,33 @@ public class ChatClientSocket {
         sendMessage("User " + username + " has joined the chat.");
     }
 
+    // Modified to handle private messages with the prefix
     public void sendMessage(String message) {
-        out.println(message);
+        out.println(message);  // Send the message to the server
     }
 
+    // New method to handle sending a private message
+    public void sendPrivateMessage(String friendUsername, String message) {
+        String formattedMessage = "PRIVATE:" + friendUsername + ":" + message;
+        sendMessage(formattedMessage);  // Send the formatted private message
+    }
+
+    // Method to receive messages
     public String receiveMessage() {
         try {
-            return in.readLine();
+            String receivedMessage = in.readLine();
+            if (receivedMessage != null && receivedMessage.startsWith("PRIVATE:")) {
+                // If the message is a private message, format it accordingly
+                return receivedMessage;  // We will handle this in the UI
+            }
+            return receivedMessage;  // For general or system messages
         } catch (IOException e) {
             System.err.println("Error reading message: " + e.getMessage());
         }
         return null;
     }
 
+    // Method to disconnect and send the user exit message
     public void disconnect(String username) {
         try {
             sendMessage("User " + username + " has left the chat.");
@@ -44,17 +59,17 @@ public class ChatClientSocket {
         }
     }
 
-
-public void sendImage(byte[] imageBytes) {
-    try {
-        String encodedImage = Base64.getEncoder().encodeToString(imageBytes);
-        sendMessage("IMAGE:" + encodedImage);
-    } catch (Exception e) {
-        e.printStackTrace();
+    // Method to send image
+    public void sendImage(byte[] imageBytes) {
+        try {
+            String encodedImage = Base64.getEncoder().encodeToString(imageBytes);
+            sendMessage("IMAGE:" + encodedImage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-}
 
-
+    // Method to receive image
     public byte[] receiveImage() {
         try {
             // Receive the image size

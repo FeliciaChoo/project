@@ -36,6 +36,7 @@ public class Chat {
     private VBox root;
     private boolean isGroupChat;
     private ChatClientSocket chatClientSocket;
+    
 
     public Chat(String username, String friendUsername, String friendImagePath, String serverAddress, int serverPort, boolean isGroupChat, Main mainApp) {
         this.username = username;
@@ -43,17 +44,17 @@ public class Chat {
         this.friendImagePath = friendImagePath;
         this.isGroupChat = isGroupChat;
         this.mainApp = mainApp; // Initialize mainApp
-    
+
         try {
             this.clientSocket = new ChatClientSocket(serverAddress, serverPort, username);
         } catch (Exception e) {
             System.err.println("Failed to connect to server: " + e.getMessage());
         }
-    
+
         initializeUI();
         receiveMessages();
     }
-    
+
 
     private void initializeUI() {
         root = new VBox();
@@ -102,6 +103,7 @@ public class Chat {
         emojiButton.setPrefSize(40, 40);
         emojiButton.setStyle("-fx-background-color: #FF69B4; -fx-border-color: #FF69B4; -fx-border-radius: 20; -fx-font-size: 16px; -fx-alignment: center; -fx-min-width: 40px; -fx-min-height: 40px;");
 
+        // Integrating the emoji picker with the style from your earlier design
         Popup emojiPicker = createEmojiPicker();
         emojiButton.setOnAction(event -> emojiPicker.show(root.getScene().getWindow()));
 
@@ -123,9 +125,15 @@ public class Chat {
     private void sendMessage() {
         String message = messageInput.getText().trim();
         if (!message.isEmpty() && clientSocket != null) {
-            String formattedMessage = username + ": " + message;
-            clientSocket.sendMessage(formattedMessage);
-            addMessage(message, true, false);
+            if (isGroupChat) {
+                String formattedMessage = username + ": " + message;
+                clientSocket.sendMessage(formattedMessage);
+                addMessage(message, true, false); // Show on the right (sent message)
+            } else {
+                String formattedMessage = "PRIVATE:" + username + ":" + message;
+                clientSocket.sendPrivateMessage(friendUsername, formattedMessage);
+                addMessage(message, true, false); // Show on the right (sent message)
+            }
             messageInput.clear();
         }
     }
@@ -138,12 +146,22 @@ public class Chat {
                     while ((receivedMessage = clientSocket.receiveMessage()) != null) {
                         String finalMessage = receivedMessage.trim();
     
-                        if (finalMessage.startsWith("IMAGE:")) {
-                            String base64Image = finalMessage.substring(6); // Remove "IMAGE:" prefix
+                        if (finalMessage.startsWith("PRIVATE:")) {
+                            String[] parts = finalMessage.split(":", 3);
+                            String sender = parts[1];  
+                            String privateMessage = parts[2];  
+    
+                            if (sender.equals(username) || sender.equals(friendUsername)) {
+                                boolean isUserMessage = sender.equals(username);
+                                Platform.runLater(() -> addMessage(privateMessage, !isUserMessage, false));
+                            }
+                        } else if (finalMessage.startsWith("IMAGE:")) {
+                            String base64Image = finalMessage.substring(6); 
                             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
                             Platform.runLater(() -> displayImage(imageBytes));
                         } else {
-                            boolean isSystemMessage = finalMessage.toLowerCase().contains("joined the chat");
+                            boolean isSystemMessage = finalMessage.toLowerCase().contains("joined the chat") || 
+                                              finalMessage.toLowerCase().contains("left the chat");
                             String sender = isSystemMessage ? "" : finalMessage.split(":")[0].trim();
     
                             if (isSystemMessage || !sender.equals(username)) {
@@ -158,46 +176,19 @@ public class Chat {
         }
     }
     
-
-    private void addMessage(String message, boolean isUser, boolean isSystemMessage) {
-        HBox messageBox = new HBox();
-        messageBox.setSpacing(10);
     
-        if (isSystemMessage) {
-            messageBox.setAlignment(Pos.CENTER);
-    
-            Text systemMessage = new Text(message);
-            systemMessage.setStyle("-fx-font-size: 14px; -fx-font-style: italic; -fx-text-fill: gray;");
-    
-            messageBox.getChildren().add(systemMessage);
-        } else {
-            messageBox.setAlignment(isUser ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-    
-            TextFlow messageBubble = new TextFlow(new Text(message));
-            messageBubble.setPadding(new Insets(10));
-            messageBubble.setMaxWidth(250);
-            messageBubble.setStyle(isUser
-                    ? "-fx-background-color: #DFF0D8; -fx-background-radius: 5;"
-                    : "-fx-background-color: #F2DEDE; -fx-background-radius: 5;");
-    
-            messageBox.getChildren().add(messageBubble);
-        }
-    
-        Platform.runLater(() -> chatArea.getChildren().add(messageBox));
-    }
-    
-
     private Popup createEmojiPicker() {
         Popup popup = new Popup();
         GridPane emojiGrid = new GridPane();
         emojiGrid.setPadding(new Insets(10));
         emojiGrid.setHgap(5);
         emojiGrid.setVgap(5);
-        String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
+        emojiGrid.setStyle("-fx-background-color: #FFC0CB; -fx-border-color: #FF69B4; -fx-border-width: 2px; -fx-border-radius: 5px;");
 
+        String[] emojis = {"😊", "😂", "❤️", "👍", "🎉", "😢", "😡", "🤔", "🙌", "😎"};
         for (int i = 0; i < emojis.length; i++) {
             Button emojiChoice = new Button(emojis[i]);
-            emojiChoice.setStyle("-fx-font-size: 16px;");
+            emojiChoice.setStyle("-fx-font-size: 16px; -fx-background-color: transparent;");
             emojiChoice.setOnAction(event -> {
                 messageInput.setText(messageInput.getText() + emojiChoice.getText());
                 popup.hide();
@@ -238,23 +229,18 @@ public class Chat {
 
         Platform.runLater(() -> chatArea.getChildren().add(imageBox));
     }
+    
     private void quitChat() {
-        // Add a system message to indicate the user has left the chat
-        String leaveMessage = username + " has left the chat.";
-        addMessage(leaveMessage, false, true);  // Set isSystemMessage to true
-    
-        if (chatClientSocket != null) {
-            chatClientSocket.disconnect(username); // Ensure proper disconnection
+        if (clientSocket != null) {
+            clientSocket.disconnect(username);
         }
-    
-        // Go back to the main screen
         if (mainApp != null) {
             mainApp.loadMainScreen(username);
         } else {
             System.err.println("Main app reference is null.");
         }
     }
-    
+
     private Circle loadAvatar(String imagePath) {
         Circle circle = new Circle(15);
         if (imagePath != null && !imagePath.isEmpty()) {
@@ -267,5 +253,34 @@ public class Chat {
 
     public VBox getRoot() {
         return root;
+    }
+    private void addMessage(String message, boolean isUser, boolean isSystemMessage) {
+        HBox messageBox = new HBox();
+        messageBox.setSpacing(10);
+    
+        if (isSystemMessage) {
+            messageBox.setAlignment(Pos.CENTER);
+    
+            Text systemMessage = new Text(message);
+            systemMessage.setStyle("-fx-font-size: 14px; -fx-font-style: italic; -fx-text-fill: gray;");
+            messageBox.getChildren().add(systemMessage);
+        } else {
+            messageBox.setAlignment(isUser ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
+    
+            TextFlow messageBubble = new TextFlow(new Text(message));
+            messageBubble.setPadding(new Insets(10));
+            messageBubble.setMaxWidth(250);
+            messageBubble.setStyle(isUser
+                    ? "-fx-background-color: #DFF0D8; -fx-background-radius: 5;"
+                    : "-fx-background-color: #F2DEDE; -fx-background-radius: 5;");
+    
+            if (message.startsWith("PRIVATE:")) {
+                messageBubble.setStyle("-fx-background-color: #FFF8DC; -fx-border-color: #FFA07A; -fx-border-width: 1; -fx-background-radius: 5;");
+            }
+    
+            messageBox.getChildren().add(messageBubble);
+        }
+    
+        Platform.runLater(() -> chatArea.getChildren().add(messageBox));
     }
 }
